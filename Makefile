@@ -12,8 +12,8 @@ CC = icpc #intel compiler tends to be faster
 CFLAGS = -O3  
 #LIBS= 
 
-#build target
 SRC = src
+#build target
 TARGET = part2s
 
 all: $(TARGET)
