@@ -18,12 +18,12 @@
 
 // source terms related
 #define t0 0.5 // time of the 1st souce term
-#define Nx 135
-#define Ny 135
-#define Nn 1
-#define Nt 1
+#define Nx 31
+#define Ny 31
+#define Nn 31
+#define Nt 20
 #define Ntot (Nt * Nx * Ny * Nn)
 #define dt 0.05
-#define dx 0.15
-#define dy 0.15
-#define dn 0.15
+#define dx 0.5
+#define dy 0.5
+#define dn 0.5

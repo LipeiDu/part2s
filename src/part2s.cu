@@ -194,4 +194,58 @@ int main()
                         mi_d, bi_d,
                         Sb_d, St_d, Sx_d, Sy_d, Sn_d);
 
+  //now copy results from device to host
+  float Sb[Ntot], St[Ntot], Sx[Ntot], Sy[Ntot], Sn[Ntot];
+  cudaMemcpy( Sb, Sb_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+  cudaMemcpy( St, St_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+  cudaMemcpy( Sx, Sx_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+  cudaMemcpy( Sy, Sy_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+  cudaMemcpy( Sn, Sn_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+
+  //write results to file
+
+  for (int n = 1; n < Nt+1; ++n)
+  {
+    int it = n-1;
+
+    FILE *sourcefile;
+    char finame[255];
+    sprintf(finame, "%s%d.dat", "output/Sources", n);
+    sourcefile = fopen(finame, "w");
+
+    for (int i = 0; i < Nx; ++i)
+    {
+      for (int j = 0; j < Ny; ++j)
+      {
+        for (int k = 0; k < Nn; ++k)
+        {
+          float tau = t0 + ((float)n - 1.0) * dt;
+          float x = ((float)i - ((float)Nx + 1.0)/2.0) * dx;
+          float y = ((float)j - ((float)Ny + 1.0)/2.0) * dy;
+          float eta = ((float)k - ((float)Nn + 1.0)/2.0) * dn;
+
+          int s = it * (Nx * Ny * Nn) + i * (Ny * Nn) + j * (Nn) + k;
+          fprintf(sourcefile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, St[s], Sx[s], Sy[s], Sn[s], Sb[s]);
+        } // for (int k )
+      } //for (int j)
+    } //for (int i )
+
+    fclose(sourcefile);
+  } // for (int n )
+  //clean up
+  cudaFree(p0_d);
+  cudaFree(p1_d);
+  cudaFree(p2_d);
+  cudaFree(p3_d);
+  cudaFree(r0_d);
+  cudaFree(r1_d);
+  cudaFree(r2_d);
+  cudaFree(r3_d);
+  cudaFree(mi_d);
+  cudaFree(bi_d);
+  cudaFree(Sb_d);
+  cudaFree(St_d);
+  cudaFree(Sx_d);
+  cudaFree(Sy_d);
+  cudaFree(Sn_d);
 }
