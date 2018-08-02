@@ -41,18 +41,18 @@ using namespace std;
 #define dt 0.05
 #define dx 0.15
 #define dy 0.15
-#define dn 0.15
+#define dn 0.5
 
 int main()
 {
 
-    float SigInv = 1/(2*sigma*sigma);
-    float SignInv = 1/(2*sigman*sigman);
+    float SigInv = 1/(2.0*sigma*sigma);
+    float SignInv = 1/(2.0*sigman*sigman);
     float d_tauInv = 1/delta_tau;
     float nevInv = 1/(float)nev;
     float hbarcNevInv = nevInv/hbarc;
 
-    float prefac = 1/(2 * (2*PI*sigma*sigma) * sqrt(2*PI*sigman*sigman));
+    float prefac = 1/(2.0 * (2.0*PI*sigma*sigma) * sqrt(2.0*PI*sigman*sigman));
     float prefactor = d_tauInv * prefac;
     float facN = prefactor * nevInv;
     float facHN = prefactor * hbarcNevInv;
@@ -205,9 +205,9 @@ int main()
                     float Sn = 0;
                     
                     rr[0] = time;
-                    rr[1] = ((float)i - ((float)Nx + 1.0)/2.0) * dx;
-                    rr[2] = ((float)j - ((float)Ny + 1.0)/2.0) * dy;
-                    rr[3] = ((float)k - ((float)Nn + 1.0)/2.0) * dn;
+                    rr[1] = ((float)i - ((float)Nx - 1.0)/2.0) * dx;
+                    rr[2] = ((float)j - ((float)Ny - 1.0)/2.0) * dy;
+                    rr[3] = ((float)k - ((float)Nn - 1.0)/2.0) * dn;
                     
                     //==========================================================================
                     // loop over all particles
