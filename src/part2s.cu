@@ -19,16 +19,16 @@ using namespace std;
 int main()
 {
 
-  float SigInv = 1.0/(2.0*sigma*sigma);
-  float SignInv = 1.0/(2.0*sigman*sigman);
-  float d_tauInv = 1.0/delta_tau;
-  float nevInv = 1.0/(float)nev;
-  float hbarcNevInv = nevInv/hbarc;
+  //float SigInv = 1.0/(2.0*sigma*sigma);
+  //float SignInv = 1.0/(2.0*sigman*sigman);
+  //float d_tauInv = 1.0/delta_tau;
+  //float nevInv = 1.0/(float)nev;
+  //float hbarcNevInv = nevInv/hbarc;
 
-  float prefac = 1.0/(2.0 * (2.0*PI*sigma*sigma) * sqrt(2.0*PI*sigman*sigman));
-  float prefactor = d_tauInv * prefac;
-  float facN = prefactor * nevInv;
-  float facHN = prefactor * hbarcNevInv;
+  //float prefac = 1.0/(2.0 * (2.0*PI*sigma*sigma) * sqrt(2.0*PI*sigman*sigman));
+  //float prefactor = d_tauInv * prefac;
+  //float facN = prefactor * nevInv;
+  //float facHN = prefactor * hbarcNevInv;
 
   ////////////////////////////////////////////////////////////////////////////
   //                             Converting coordinates                     //
@@ -236,9 +236,9 @@ int main()
         for (int k = 0; k < Nn; ++k)
         {
           float tau = t0 + ((float)n - 1.0) * dt;
-          float x = ((float)i - ((float)Nx + 1.0)/2.0) * dx;
-          float y = ((float)j - ((float)Ny + 1.0)/2.0) * dy;
-          float eta = ((float)k - ((float)Nn + 1.0)/2.0) * dn;
+          float x = ((float)i - ((float)Nx - 1.0)/2.0) * dx;
+          float y = ((float)j - ((float)Ny - 1.0)/2.0) * dy;
+          float eta = ((float)k - ((float)Nn - 1.0)/2.0) * dn;
 
           int s = it * (Nx * Ny * Nn) + i * (Ny * Nn) + j * (Nn) + k;
           fprintf(sourcefile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, St[s], Sx[s], Sy[s], Sn[s], Sb[s]);
