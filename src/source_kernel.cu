@@ -42,9 +42,9 @@ __global__ void source_kernel(int Npart,
     float Sn = 0.0;
 
     rr[0] = tau;
-    rr[1] = ((float)i - ((float)Nx + 1.0)/2.0) * dx;
-    rr[2] = ((float)j - ((float)Ny + 1.0)/2.0) * dy;
-    rr[3] = ((float)k - ((float)Nn + 1.0)/2.0) * dn;
+    rr[1] = ((float)i - ((float)Nx - 1.0)/2.0) * dx;
+    rr[2] = ((float)j - ((float)Ny - 1.0)/2.0) * dy;
+    rr[3] = ((float)k - ((float)Nn - 1.0)/2.0) * dn;
 
     //==========================================================================
     // loop over all particles

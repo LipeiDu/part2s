@@ -184,6 +184,13 @@ int main()
   cudaMemcpy( mi_d, mi, Npart * sizeof(float), cudaMemcpyHostToDevice );
   cudaMemcpy( bi_d, bi, Npart * sizeof(float), cudaMemcpyHostToDevice );
 
+  //zero the device source arrays first
+  cudaMemset( Sb_d, 0.0, Ntot * sizeof(float));
+  cudaMemset( St_d, 0.0, Ntot * sizeof(float));
+  cudaMemset( Sx_d, 0.0, Ntot * sizeof(float));
+  cudaMemset( Sy_d, 0.0, Ntot * sizeof(float));
+  cudaMemset( Sn_d, 0.0, Ntot * sizeof(float));
+
   //launch the cuda kernel that computes the source terms
   // need enough threads to cover Ntot total number of spacetime points
   int threadsPerBlock = 256;
@@ -196,6 +203,15 @@ int main()
 
   //now copy results from device to host
   float Sb[Ntot], St[Ntot], Sx[Ntot], Sy[Ntot], Sn[Ntot];
+  //zero the host arrayus first 
+  for (int s = 0; s < Ntot; s++)
+  {
+    Sb[s] = 0;
+    St[s] = 0;
+    Sx[s] = 0;
+    Sy[s] = 0;
+    Sn[s] = 0;
+  }
   cudaMemcpy( Sb, Sb_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
   cudaMemcpy( St, St_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
   cudaMemcpy( Sx, Sx_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
