@@ -13,22 +13,13 @@
 #include <iomanip>
 #include "parameters.h"
 #include "source_kernel.cu"
+#include <H5Cpp.h>
+#include <H5File.h>
 
 using namespace std;
 
 int main()
 {
-
-  //float SigInv = 1.0/(2.0*sigma*sigma);
-  //float SignInv = 1.0/(2.0*sigman*sigman);
-  //float d_tauInv = 1.0/delta_tau;
-  //float nevInv = 1.0/(float)nev;
-  //float hbarcNevInv = nevInv/hbarc;
-
-  //float prefac = 1.0/(2.0 * (2.0*PI*sigma*sigma) * sqrt(2.0*PI*sigman*sigman));
-  //float prefactor = d_tauInv * prefac;
-  //float facN = prefactor * nevInv;
-  //float facHN = prefactor * hbarcNevInv;
 
   ////////////////////////////////////////////////////////////////////////////
   //                             Converting coordinates                     //
@@ -132,15 +123,12 @@ int main()
   sprintf(fname, "output/Milne.dat");
   MFile = fopen(fname, "r");
 
-  if(MFile==NULL){
-    printf("The particle list in Milne couldn't be opened...\n");
-  }
-  else{
+  if (MFile == NULL) printf("The particle list in Milne couldn't be opened...\n");
+  else
+  {
     fseek(MFile,0L,SEEK_SET);
-    for(int i = 0; i < Npart; ++i)
-    fscanf(MFile,"%e %e %e %e %e %e %e %e %e %e", &r0[i], &r1[i], &r2[i], &r3[i], &p0[i], &p1[i], &p2[i], &p3[i], &mi[i], &bi[i]);
+    for (int i = 0; i < Npart; ++i) fscanf(MFile,"%e %e %e %e %e %e %e %e %e %e", &r0[i], &r1[i], &r2[i], &r3[i], &p0[i], &p1[i], &p2[i], &p3[i], &mi[i], &bi[i]);
   }
-
   fclose(MFile);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -148,6 +136,15 @@ int main()
   ////////////////////////////////////////////////////////////////////////////
 
   printf("Calculating source terms...\n");
+  cudaDeviceSynchronize();
+  cudaError_t err;
+
+  err = cudaGetLastError();
+  if (err != cudaSuccess)
+  {
+    printf("Error at very beginning: %s\n", cudaGetErrorString(err));
+    err = cudaSuccess;
+  }
 
   //declare and allocate device arrays to hold particle info from UrQMD
   float *p0_d, *p1_d, *p2_d, *p3_d;
@@ -172,6 +169,14 @@ int main()
   cudaMalloc( (void**) &Sy_d, Ntot * sizeof(float) );
   cudaMalloc( (void**) &Sn_d, Ntot * sizeof(float) );
 
+
+  err = cudaGetLastError();
+  if (err != cudaSuccess)
+  {
+    printf("Error in device memory allocation: %s\n", cudaGetErrorString(err));
+    err = cudaSuccess;
+  }
+
   // copy input arrays from host to device
   cudaMemcpy( p0_d, p0, Npart * sizeof(float), cudaMemcpyHostToDevice );
   cudaMemcpy( p1_d, p1, Npart * sizeof(float), cudaMemcpyHostToDevice );
@@ -184,6 +189,13 @@ int main()
   cudaMemcpy( mi_d, mi, Npart * sizeof(float), cudaMemcpyHostToDevice );
   cudaMemcpy( bi_d, bi, Npart * sizeof(float), cudaMemcpyHostToDevice );
 
+  err = cudaGetLastError();
+  if (err != cudaSuccess)
+  {
+    printf("Error in a cudaMemcpy: %s\n", cudaGetErrorString(err));
+    err = cudaSuccess;
+  }
+
   //zero the device source arrays first
   cudaMemset( Sb_d, 0.0, Ntot * sizeof(float));
   cudaMemset( St_d, 0.0, Ntot * sizeof(float));
@@ -191,44 +203,90 @@ int main()
   cudaMemset( Sy_d, 0.0, Ntot * sizeof(float));
   cudaMemset( Sn_d, 0.0, Ntot * sizeof(float));
 
-  //launch the cuda kernel that computes the source terms
-  // need enough threads to cover Ntot total number of spacetime points
-  int threadsPerBlock = 256;
-  int numBlocks = (Ntot / threadsPerBlock) + 1;
-  source_kernel<<<numBlocks, threadsPerBlock>>>(Npart,
-                        p0_d, p1_d, p2_d, p3_d,
-                        r0_d, r1_d, r2_d, r3_d,
-                        mi_d, bi_d,
-                        Sb_d, St_d, Sx_d, Sy_d, Sn_d);
+  //kernel launch parameters
+  int threadsX = 16;
+  int threadsY = 16;
+  int threadsZ = 2;
+  int blocksX = (Nx+threadsX-1)/threadsX;
+  int blocksY = (Ny+threadsY-1)/threadsY;
+  int blocksZ = (Nn+threadsZ-1)/threadsZ;
+  printf("CUDA kernel parameters:\n");
+  printf("dim3 grids = ( %d, %d, %d )\n", blocksX, blocksY, blocksZ);
+  printf("dim3 threads = ( %d, %d, %d )\n", threadsX, threadsY, threadsZ);
+  dim3 grids( blocksX, blocksY, blocksZ );
+  dim3 threads( threadsX, threadsY, threadsZ);
 
-  //now copy results from device to host
-  float Sb[Ntot], St[Ntot], Sx[Ntot], Sy[Ntot], Sn[Ntot];
-  //zero the host arrayus first 
-  for (int s = 0; s < Ntot; s++)
-  {
-    Sb[s] = 0;
-    St[s] = 0;
-    Sx[s] = 0;
-    Sy[s] = 0;
-    Sn[s] = 0;
-  }
-  cudaMemcpy( Sb, Sb_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
-  cudaMemcpy( St, St_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
-  cudaMemcpy( Sx, Sx_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
-  cudaMemcpy( Sy, Sy_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
-  cudaMemcpy( Sn, Sn_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+  //host arrays for source terms
+  float *Sb, *St, *Sx, *Sy, *Sn;
+  Sb = (float *)calloc( Ntot, sizeof(float) );
+  St = (float *)calloc( Ntot, sizeof(float) );
+  Sx = (float *)calloc( Ntot, sizeof(float) );
+  Sy = (float *)calloc( Ntot, sizeof(float) );
+  Sn = (float *)calloc( Ntot, sizeof(float) );
 
-  //write results to file
+  //an array to hold all info for all the source terms compressed to 1d for hdf5 writer
+  float *Sall;
+  Sall = (float *)calloc( 5*Ntot, sizeof(float) );
 
+  //FILE *sourcefile;
+  char source_fname[255];
+
+  //loop over time steps, calling kernel for each and writing to file
   for (int n = 1; n < Nt+1; ++n)
   {
+    printf("Calculating source term for n = %d of %d\n", n, Nt);
     int it = n-1;
+    sprintf(source_fname, "%s%d.h5", "output/Sources", n);
+    //sourcefile = fopen(finame, "w");
+    printf("Launching kernel...\n");
+    source_kernel<<< grids, threads >>>(Npart, it,
+                          p0_d, p1_d, p2_d, p3_d,
+                          r0_d, r1_d, r2_d, r3_d,
+                          mi_d, bi_d,
+                          Sb_d, St_d, Sx_d, Sy_d, Sn_d);
 
-    FILE *sourcefile;
-    char finame[255];
-    sprintf(finame, "%s%d.dat", "output/Sources", n);
-    sourcefile = fopen(finame, "w");
+    err = cudaGetLastError();
+    if (err != cudaSuccess)
+    {
+      printf("Error in source kernel: %s\n", cudaGetErrorString(err));
+      err = cudaSuccess;
+    }
+    else printf("Kernel finished, copying back to host...\n");
+    //now copy results from device to host
+    cudaMemcpy( Sb, Sb_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+    cudaMemcpy( St, St_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+    cudaMemcpy( Sx, Sx_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+    cudaMemcpy( Sy, Sy_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+    cudaMemcpy( Sn, Sn_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
 
+    //compress all data into the 1d array to pass to hdf5 writer
+    for (int is = 0; is < Ntot; is++)
+    {
+      Sall[is] = Sb[is];
+      Sall[2 * is] = St[is];
+      Sall[3 * is] = Sx[is];
+      Sall[4 * is] = Sy[is];
+      Sall[5 * is] = Sn[is];
+    }
+
+    //fclose(sourcefile);
+
+    printf("Writing source terms to file...\n\n");
+    H5::H5File file(source_fname, H5F_ACC_TRUNC);
+    // dataset dimensions
+    hsize_t dimsf[4];
+    dimsf[0] = Nx;
+    dimsf[1] = Ny;
+    dimsf[2] = Nn;
+    dimsf[3] = 5;
+
+    H5::DataSpace dataspace(4, dimsf);
+    H5::DataType datatype(H5::PredType::NATIVE_FLOAT);
+    H5::DataSet dataset = file.createDataSet("data", datatype, dataspace);
+    dataset.write(Sall, H5::PredType::NATIVE_FLOAT);
+
+    /*
+    //now write file
     for (int i = 0; i < Nx; ++i)
     {
       for (int j = 0; j < Ny; ++j)
@@ -240,15 +298,24 @@ int main()
           float y = ((float)j - ((float)Ny - 1.0)/2.0) * dy;
           float eta = ((float)k - ((float)Nn - 1.0)/2.0) * dn;
 
-          int s = it * (Nx * Ny * Nn) + i * (Ny * Nn) + j * (Nn) + k;
+          int s = i + j * (Nx) + k * (Nx * Ny);
           fprintf(sourcefile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, St[s], Sx[s], Sy[s], Sn[s], Sb[s]);
         } // for (int k )
       } //for (int j)
     } //for (int i )
+    //fclose(sourcefile);
 
-    fclose(sourcefile);
+    */
   } // for (int n )
+
+  printf("Freeing memory\n");
   //clean up
+  free(Sb);
+  free(St);
+  free(Sx);
+  free(Sy);
+  free(Sn);
+
   cudaFree(p0_d);
   cudaFree(p1_d);
   cudaFree(p2_d);
@@ -264,4 +331,6 @@ int main()
   cudaFree(Sx_d);
   cudaFree(Sy_d);
   cudaFree(Sn_d);
+
+  printf("Done. Goodbye! \n");
 }
