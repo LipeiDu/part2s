@@ -317,17 +317,17 @@ int main()
   float *Sall;
   Sall = (float *)calloc( 5*Ntot, sizeof(float) );
 
-  //FILE *sourcefile;
+  FILE *sourcefile;
   char source_fname[255];
+  char finame[255];
 
   //loop over time steps, calling kernel for each and writing to file
   for (int n = 1; n < Nt+1; ++n)
   {
-    printf("Calculating source term for n = %d of %d\n", n, Nt);
+    if ( (n % 10) == 1 ) printf("Calculating source term for n = %d of %d\n", n, Nt);
     int it = n-1;
     sprintf(source_fname, "%s%d.h5", "output/Sources", n);
-    //sourcefile = fopen(finame, "w");
-    printf("Launching kernel...\n");
+    //printf("Launching kernel...\n");
     source_kernel<<< grids, threads >>>(Npart, it,
                           p0_d, p1_d, p2_d, p3_d,
                           r0_d, r1_d, r2_d, r3_d,
@@ -340,7 +340,7 @@ int main()
       printf("Error in source kernel: %s\n", cudaGetErrorString(err));
       err = cudaSuccess;
     }
-    else printf("Kernel finished, copying back to host...\n");
+    //else printf("Kernel finished, copying back to host...\n");
     //now copy results from device to host
     cudaMemcpy( Sb, Sb_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
     cudaMemcpy( St, St_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
@@ -358,9 +358,7 @@ int main()
       Sall[5 * is] = Sn[is];
     }
 
-    //fclose(sourcefile);
-
-    printf("Writing source terms to file...\n\n");
+    //printf("Writing source terms to file...\n\n");
     H5::H5File file(source_fname, H5F_ACC_TRUNC);
     // dataset dimensions
     hsize_t dimsf[4];
@@ -374,8 +372,9 @@ int main()
     H5::DataSet dataset = file.createDataSet("data", datatype, dataspace);
     dataset.write(Sall, H5::PredType::NATIVE_FLOAT);
 
-    /*
-    //now write file
+    //FOR TESTING write ascii files
+    sprintf(finame, "%s%d.dat", "output/Sources", n);
+    sourcefile = fopen(finame, "w");
     for (int i = 0; i < Nx; ++i)
     {
       for (int j = 0; j < Ny; ++j)
@@ -392,9 +391,10 @@ int main()
         } // for (int k )
       } //for (int j)
     } //for (int i )
-    //fclose(sourcefile);
+    fclose(sourcefile);
 
-    */
+    //FOR TESTING write ascii files
+
   } // for (int n )
 
   printf("Freeing memory\n");
