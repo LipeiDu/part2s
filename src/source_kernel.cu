@@ -5,7 +5,7 @@ __global__ void source_kernel(int Npart, int it,
                               float *p0_d, float *p1_d, float *p2_d, float *p3_d,
                               float *r0_d, float *r1_d, float *r2_d, float *r3_d,
                               float *mi_d, float *bi_d,
-                              float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, struct parameters &params)
+                              float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, parameters params)
 {
 
   int nev = params.NEV;

@@ -109,6 +109,11 @@ int main()
   int Nn = params.NN;
   int Nt = params.NT;
   int Ntot = params.NTOT;
+  float t0 = params.T0;
+  float dt = params.DT;
+  float dx = params.DX;
+  float dy = params.DY;
+  float dn = params.DN;
 
   ////////////////////////////////////////////////////////////////////////////
   //                             Converting coordinates                     //
