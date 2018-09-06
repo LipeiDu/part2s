@@ -1,24 +1,23 @@
 
 #include "parameters.h"
 
-__global__ void source_kernel(int Npart,
+__global__ void source_kernel(int Npart, int it,
                               float *p0_d, float *p1_d, float *p2_d, float *p3_d,
                               float *r0_d, float *r1_d, float *r2_d, float *r3_d,
                               float *mi_d, float *bi_d,
                               float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d)
 {
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  int i = threadIdx.x + blockIdx.x * blockDim.x;
+  int j = threadIdx.y + blockIdx.y * blockDim.y;
+  int k = threadIdx.z + blockIdx.z * blockDim.z;
+  long int tid = i + j * (blockDim.x * gridDim.x) + k * (blockDim.x * gridDim.x * blockDim.y * gridDim.y);
+
+  //printf("(i,j,k) = (%d,%d,%d)\n", i, j, k);
+
   if (tid < Ntot)
   {
-    //reconstruct the space and time indices assuming the column packing:
-    // tid = it * (nx * ny * nn) + ix * (ny * nn) + iy * (nn) + in
-    int it = tid / (Nx * Ny * Nn);
-    int i = ( tid - (it * Nx * Ny * Nn) ) / (Ny * Nn);
-    int j = (tid - (it * Nx * Ny * Nn) - (i * Ny * Nn)) / Nn;
-    int k = tid - (it * Nx * Ny * Nn) - (i * Ny * Nn) - j * Nn;
-    int n = it + 1;
-
-    float tau = t0 + ((float)n - 1.0) * dt;
+    //printf("tid = %d\n", tid);
+    float tau = t0 + ((float)it) * dt;
     float tauInv = 1.0 / tau;
     float rr[4];
 
@@ -96,5 +95,5 @@ __global__ void source_kernel(int Npart,
     Sx_d[tid] = facHN * Sx * tauInv; // [1/fm^5] = [1/(fm^4*GeV)] * [GeV] * [1/fm]
     Sy_d[tid] = facHN * Sy * tauInv; // [1/fm^5] = [1/(fm^4*GeV)] * [GeV] * [1/fm]
     Sn_d[tid] = facHN * Sn * tauInv; // [1/fm^6] = [1/(fm^4*GeV)] * [GeV/fm] * [1/fm]
-  } //if (tid < N)
+  } //if (tid < Ntot)
 }

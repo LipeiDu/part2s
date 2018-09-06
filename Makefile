@@ -1,15 +1,12 @@
 #compiler
 #CC = g++ #
-#CC = pgc++ #for OpenACC GPU acceleration
 #CC = icpc #intel compiler tends to be faster
 CC = nvcc # to compile cuda 
 
 #compiler flags
 # -g adds debug info
 # -Wall turns on most warnings
-#CFLAGS = -acc #GPU acceleration with pgc++ 
-#CFLAGS = -acc -ta=tesla:managed #also uses unified memory
-#CFLAGS = -O3  
+CFLAGS = -lhdf5 -lhdf5_cpp  
 #LIBS= 
 
 #source code directory
