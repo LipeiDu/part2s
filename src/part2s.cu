@@ -18,8 +18,97 @@
 
 using namespace std;
 
+
+void readInParameters(struct parameters &params)
+{
+    char dummyChar[255];
+    int dummyInt;
+    float dummyFloat;
+
+    FILE *fileIn;
+    char fname[255];
+    sprintf(fname, "parameter.dat");
+    fileIn = fopen(fname, "r");
+
+    if (fileIn == NULL)
+    {
+        printf("Couldn't open parameter.dat . Using default values!\n");
+    }
+    else
+    {
+        fscanf(fileIn, "%s\t%d\n", dummyChar, &dummyInt);
+        params.NEV = dummyInt;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.SIGMA = dummyFloat;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.SIGMAN = dummyFloat;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.DELTA_TAU = dummyFloat;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.TAUFORM = dummyFloat;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.T0 = dummyFloat;
+        fscanf(fileIn, "%s\t%d\n", dummyChar, &dummyInt);
+        params.NX = dummyInt;
+        fscanf(fileIn, "%s\t%d\n", dummyChar, &dummyInt);
+        params.NY = dummyInt;
+        fscanf(fileIn, "%s\t%d\n", dummyChar, &dummyInt);
+        params.NN = dummyInt;
+        fscanf(fileIn, "%s\t%d\n", dummyChar, &dummyInt);
+        params.NT = dummyInt;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.DT = dummyFloat;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.DX = dummyFloat;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.DY = dummyFloat;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.DN = dummyFloat;
+    }
+
+    fclose(fileIn);
+}
+
+
 int main()
 {
+
+  ////////////////////////////////////////////////////////////////////////////
+  //                            Initialize parameters                       //
+  ////////////////////////////////////////////////////////////////////////////
+
+
+  //declare parameters struct
+  struct parameters params;
+
+  // default values
+  params.NEV = 1;
+  params.SIGMA = 1.0;
+  params.SIGMAN = 0.5;
+  params.DELTA_TAU = 0.5;
+  params.TAUFORM = 0.2;
+  params.T0 = 0.5;
+  params.NX = 131;
+  params.NY = 131;
+  params.NN = 61;
+  params.NT = 80;
+  params.DT = 0.05;
+  params.DX = 0.15;
+  params.DY = 0.15;
+  params.DN = 0.15;
+
+  // read in chosen parameters from parameters.dat if such a file exists
+  readInParameters(params);
+
+  params.NTOT = (params.NX * params.NY * params.NN);
+
+  // pass values
+  float tauform = params.TAUFORM;
+  int Nx = params.NX;
+  int Ny = params.NY;
+  int Nn = params.NN;
+  int Nt = params.NT;
+  int Ntot = params.NTOT;
 
   ////////////////////////////////////////////////////////////////////////////
   //                             Converting coordinates                     //
@@ -243,7 +332,7 @@ int main()
                           p0_d, p1_d, p2_d, p3_d,
                           r0_d, r1_d, r2_d, r3_d,
                           mi_d, bi_d,
-                          Sb_d, St_d, Sx_d, Sy_d, Sn_d);
+                          Sb_d, St_d, Sx_d, Sy_d, Sn_d, params);
 
     err = cudaGetLastError();
     if (err != cudaSuccess)

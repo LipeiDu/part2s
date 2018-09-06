@@ -5,8 +5,23 @@ __global__ void source_kernel(int Npart, int it,
                               float *p0_d, float *p1_d, float *p2_d, float *p3_d,
                               float *r0_d, float *r1_d, float *r2_d, float *r3_d,
                               float *mi_d, float *bi_d,
-                              float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d)
+                              float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, struct parameters &params)
 {
+
+  int nev = params.NEV;
+  float sigma = params.SIGMA;
+  float sigman = params.SIGMAN;
+  float delta_tau = params.DELTA_TAU;
+  float t0 = params.T0;
+  int Nx = params.NX;
+  int Ny = params.NY;
+  int Nn = params.NN;
+  float dt = params.DT;
+  float dx = params.DX;
+  float dy = params.DY;
+  float dn = params.DN;
+  int Ntot = params.NTOT;
+
   int i = threadIdx.x + blockIdx.x * blockDim.x;
   int j = threadIdx.y + blockIdx.y * blockDim.y;
   int k = threadIdx.z + blockIdx.z * blockDim.z;
