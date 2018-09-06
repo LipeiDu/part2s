@@ -22,10 +22,24 @@ __global__ void source_kernel(int Npart, int it,
   float dn = params.DN;
   int Ntot = params.NTOT;
 
+  /*
   int i = threadIdx.x + blockIdx.x * blockDim.x;
   int j = threadIdx.y + blockIdx.y * blockDim.y;
   int k = threadIdx.z + blockIdx.z * blockDim.z;
   long int tid = i + j * (blockDim.x * gridDim.x) + k * (blockDim.x * gridDim.x * blockDim.y * gridDim.y);
+  */
+
+  long int blockId = blockIdx.x + blockIdx.y * gridDim.x
+                  + gridDim.x * gridDim.y * blockIdx.z;
+  long int tid =     blockId * (blockDim.x * blockDim.y * blockDim.z)
+                  + (threadIdx.z * (blockDim.x * blockDim.y))
+                  + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+  //reconstruct indices manually using
+  // s = i + j * (Nx) + k * (Nx * Ny);
+  int k = tid / (Nx * Ny);
+  int j = ( tid - (k * Nx * Ny) ) / Nx;
+  int i = tid - (k * Nx * Ny) - (j * Nx);
 
   //printf("(i,j,k) = (%d,%d,%d)\n", i, j, k);
 
