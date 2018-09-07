@@ -300,7 +300,7 @@ int main()
   //kernel launch parameters
   int threadsX = 16;
   int threadsY = 16;
-  int threadsZ = 2;
+  int threadsZ = 1;
   int blocksX = (Nx+threadsX-1)/threadsX;
   int blocksY = (Ny+threadsY-1)/threadsY;
   int blocksZ = (Nn+threadsZ-1)/threadsZ;
@@ -357,12 +357,12 @@ int main()
     for (int is = 0; is < Ntot; is++)
     {
       Sall[is] = Sb[is];
-      Sall[2 * is] = St[is];
-      Sall[3 * is] = Sx[is];
-      Sall[4 * is] = Sy[is];
-      Sall[5 * is] = Sn[is];
+      Sall[Ntot + is] = St[is];
+      Sall[2 * Ntot + is] = Sx[is];
+      Sall[3 * Ntot + is] = Sy[is];
+      Sall[4 * Ntot + is] = Sn[is];
     }
-
+    
     //printf("Writing source terms to file...\n\n");
     H5::H5File file(source_fname, H5F_ACC_TRUNC);
     // dataset dimensions
@@ -378,6 +378,7 @@ int main()
     dataset.write(Sall, H5::PredType::NATIVE_FLOAT);
 
     //FOR TESTING write ascii files
+    /*
     sprintf(finame, "%s%d.dat", "output/Sources", n);
     sourcefile = fopen(finame, "w");
     for (int i = 0; i < Nx; ++i)
@@ -397,7 +398,7 @@ int main()
       } //for (int j)
     } //for (int i )
     fclose(sourcefile);
-
+    */
     //FOR TESTING write ascii files
 
   } // for (int n )

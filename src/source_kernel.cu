@@ -8,20 +8,6 @@ __global__ void source_kernel(int Npart, int it,
                               float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, parameters params)
 {
 
-  int nev = params.NEV;
-  float sigma = params.SIGMA;
-  float sigman = params.SIGMAN;
-  float delta_tau = params.DELTA_TAU;
-  float t0 = params.T0;
-  int Nx = params.NX;
-  int Ny = params.NY;
-  int Nn = params.NN;
-  float dt = params.DT;
-  float dx = params.DX;
-  float dy = params.DY;
-  float dn = params.DN;
-  int Ntot = params.NTOT;
-
   /*
   int i = threadIdx.x + blockIdx.x * blockDim.x;
   int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -35,16 +21,28 @@ __global__ void source_kernel(int Npart, int it,
                   + (threadIdx.z * (blockDim.x * blockDim.y))
                   + (threadIdx.y * blockDim.x) + threadIdx.x;
 
-  //reconstruct indices manually using
-  // s = i + j * (Nx) + k * (Nx * Ny);
-  int k = tid / (Nx * Ny);
-  int j = ( tid - (k * Nx * Ny) ) / Nx;
-  int i = tid - (k * Nx * Ny) - (j * Nx);
-
-  //printf("(i,j,k) = (%d,%d,%d)\n", i, j, k);
-
+  int Ntot = params.NTOT;
   if (tid < Ntot)
   {
+    int nev = params.NEV;
+    float sigma = params.SIGMA;
+    float sigman = params.SIGMAN;
+    float delta_tau = params.DELTA_TAU;
+    float t0 = params.T0;
+    int Nx = params.NX;
+    int Ny = params.NY;
+    int Nn = params.NN;
+    float dt = params.DT;
+    float dx = params.DX;
+    float dy = params.DY;
+    float dn = params.DN;
+    
+    //reconstruct indices manually using
+    // s = i + j * (Nx) + k * (Nx * Ny);
+    int k = tid / (Nx * Ny);
+    int j = ( tid - (k * Nx * Ny) ) / Nx;
+    int i = tid - (k * Nx * Ny) - (j * Nx);
+
     //printf("tid = %d\n", tid);
     float tau = t0 + ((float)it) * dt;
     float tauInv = 1.0 / tau;
