@@ -12,8 +12,6 @@
 #include <string>
 #include <iomanip>
 #include "parameters.h"
-#include <H5Cpp.h>
-#include <H5File.h>
 
 using namespace std;
 
@@ -70,7 +68,7 @@ int main()
   //                            Initialize parameters                       //
   ////////////////////////////////////////////////////////////////////////////
 
-  //declare parameters struct
+  // declare parameters struct
   struct parameters params;
   // default values
   params.NEV = 1;
@@ -114,65 +112,109 @@ int main()
   //                             Converting coordinates                     //
   ////////////////////////////////////////////////////////////////////////////
 
-  printf("Converting to Milne coordinates and integrating total event energy \n");
-  float total_energy_in = 0.0;
-  float total_energy_out = 0.0;
+    FILE *outfile;
+    char filname[255];
+    sprintf(filname, "output/EventSummary.dat");
+    outfile = fopen(filname, "w");
+    
+  // read in all event files, each event is in a single file
+    
+  for(int n = 1; n < params.NEV+1; ++n){
+      FILE *eventfile;
+      char fname[255];
+      sprintf(fname, "%s%d.dat", "input/event",n);
+      eventfile = fopen(fname, "r");
+      
+      int nParticipant = 0;
+      int event = 0;
+      float impactPara = 0.0;
+      
+      if(eventfile==NULL){
+          printf("The event file %d could not be opened...\n", n);
+          //exit(-1);
+      }
+      else
+      {
+          fseek(eventfile,0L,SEEK_SET);
+          
+          // read and print the header line
+          fscanf(eventfile,"%d%f%d", &event, &impactPara, &nParticipant);
+          //printf("event=%d\t impact parameter=%f\t No. of participant=%d \n", event, impactPara, nParticipant);
+          
+          //printf("Converting to Milne coordinates and integrating total event energy \n");
+          float total_energy_in = 0.0;
+          float total_energy_out = 0.0;
+          
+          //==========================================================================
+          // read in the particle list from UrQMD; get the info. in Milne.
 
-  //==========================================================================
-  // read in the particle list from UrQMD; get the info. in Milne.
-  ifstream infile1("Set.dat");
-  float r_i[4], p_i[4];
-  for (int j = 0; j < 4; ++j)
-  {
-    r_i[j] = 0.0;
-    p_i[j] = 0.0;
-  }
+          float r_i[4], p_i[4];
+          for (int j = 0; j < 4; ++j)
+          {
+              r_i[j] = 0.0;
+              p_i[j] = 0.0;
+          }
+          
+          float m_i = 0;
+          float tform_i = 0;
+          float b_i = 0;
+          
+          int Npart = 0; // total number of particles
+          
+          fscanf(eventfile,"%*[^\n]%*c");//Skip the header line
+              
+          for(int i=0;!feof(eventfile);++i)
+          {
+              fscanf(eventfile, "%f %f %f %f %f %f %f %f %f %f %f\n", &r_i[0], &r_i[1], &r_i[2], &r_i[3], &p_i[0], &p_i[1], &p_i[2], &p_i[3], &m_i, &tform_i, &b_i);
+              
+              // gamma factor of particle i
+              float gamma_i = p_i[0]/m_i;
+              // calculate the final postion of each particle after the formation time
+              float tform = tauform * gamma_i;
+              float tformE = tform/p_i[0];
+              r_i[0] = r_i[0] + tform;
+              r_i[1] = r_i[1] + p_i[1] * tformE;
+              r_i[2] = r_i[2] + p_i[2] * tformE;
+              r_i[3] = r_i[3] + p_i[3] * tformE;
+              // transfer into Milne coordinates
+              float rm_i[4];
+              rm_i[0] = sqrt(r_i[0]*r_i[0]-r_i[3]*r_i[3]); // tau
+              rm_i[1] = r_i[1]; // x
+              rm_i[2] = r_i[2]; // y
+              rm_i[3] = 0.5 * log((r_i[0]+r_i[3])/(r_i[0]-r_i[3])); // eta_s
+              
+              //check if particle is inside hydro box, if so add its energy to total inside box
+              //2D box
+              if (Nn == 1)
+              {
+                  if ( (fabs(r_i[1]) < max_x)  && (fabs(r_i[2]) < max_y) ) total_energy_in += p_i[0];
+                  //otherwise keep track of energy outside hydro box
+                  else total_energy_out += p_i[0];
+              }
+              //3D box
+              else
+              {
+                  if ( (fabs(r_i[1]) < max_x)  && (fabs(r_i[2]) < max_y) && (fabs(r_i[3]) < max_eta) ) total_energy_in += p_i[0];
+                  //otherwise keep track of energy outside hydro box
+                  else total_energy_out += p_i[0];
+              }
+              Npart++;
+          }
+          
+          //printf("Total number of particles           :  %d.\n", Npart);
+          //printf("Total energy inside hydro box       :  %f.\n", total_energy_in);
+          //printf("Total energy outside hydro box      :  %f.\n", total_energy_out);
+          float energy_ratio = total_energy_in / (total_energy_in + total_energy_out);
+          //printf("Percentage energy intside hydro box :  %f.\n", energy_ratio);
 
-  float m_i = 0;
-  float tform_i = 0;
-  float b_i = 0;
-
-  int Npart = 0; // total number of particles
-
-  while (infile1 >> r_i[0] >> r_i[1] >> r_i[2] >> r_i[3] >> p_i[0] >> p_i[1] >> p_i[2] >> p_i[3] >> m_i >> tform_i >> b_i)
-  {
-    // gamma factor of particle i
-    float gamma_i = p_i[0]/m_i;
-    // calculate the final postion of each particle after the formation time
-    float tform = tauform * gamma_i;
-    float tformE = tform/p_i[0];
-    r_i[0] = r_i[0] + tform;
-    r_i[1] = r_i[1] + p_i[1] * tformE;
-    r_i[2] = r_i[2] + p_i[2] * tformE;
-    r_i[3] = r_i[3] + p_i[3] * tformE;
-    // transfer into Milne coordinates
-    float rm_i[4];
-    rm_i[0] = sqrt(r_i[0]*r_i[0]-r_i[3]*r_i[3]); // tau
-    rm_i[1] = r_i[1]; // x
-    rm_i[2] = r_i[2]; // y
-    rm_i[3] = 0.5 * log((r_i[0]+r_i[3])/(r_i[0]-r_i[3])); // eta_s
-
-    //check if particle is inside hydro box, if so add its energy to total inside box
-    //2D box
-    if (Nn == 1)
-    {
-      if ( (fabs(r_i[1]) < max_x)  && (fabs(r_i[2]) < max_y) ) total_energy_in += p_i[0];
-      //otherwise keep track of energy outside hydro box
-      else total_energy_out += p_i[0];
+          // write information to EventSummary.dat, event ID, impact parameter, number of participants, number of produced particles, total energy inside hydro box, Total energy outside hydro box, Percentage energy intside hydro box
+          fprintf(outfile,"%d\t %.8f\t %d\t %d\t %.8f\t %.8f\t %.8f\n", event, impactPara, nParticipant, Npart, total_energy_in, total_energy_out, energy_ratio);
+          
+          fclose(eventfile);
+        }
     }
-    //3D box
-    else
-    {
-      if ( (fabs(r_i[1]) < max_x)  && (fabs(r_i[2]) < max_y) && (fabs(r_i[3]) < max_eta) ) total_energy_in += p_i[0];
-      //otherwise keep track of energy outside hydro box
-      else total_energy_out += p_i[0];
-    }
-    Npart++;
-  }
-  printf("Total number of particles           :  %d.\n", Npart);
-  printf("Total energy inside hydro box       :  %f.\n", total_energy_in);
-  printf("Total energy outside hydro box      :  %f.\n", total_energy_out);
-  float energy_ratio = total_energy_in / (total_energy_in + total_energy_out);
-  printf("Percentage energy intside hydro box :  %f.\n", energy_ratio);
-
+    
+    fclose(outfile);
+    
+    printf("Done. Goodbye! \n");
 }
