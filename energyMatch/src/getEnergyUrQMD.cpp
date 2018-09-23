@@ -187,14 +187,14 @@ int main()
               //2D box
               if (Nn == 1)
               {
-                  if ( (fabs(r_i[1]) < max_x)  && (fabs(r_i[2]) < max_y) ) total_energy_in += p_i[0];
+                  if ( (fabs(rm_i[1]) < max_x)  && (fabs(rm_i[2]) < max_y)  && !isnan(rm_i[0])) total_energy_in += p_i[0];
                   //otherwise keep track of energy outside hydro box
                   else total_energy_out += p_i[0];
               }
               //3D box
               else
               {
-                  if ( (fabs(r_i[1]) < max_x)  && (fabs(r_i[2]) < max_y) && (fabs(r_i[3]) < max_eta) ) total_energy_in += p_i[0];
+                  if ( (fabs(rm_i[1]) < max_x)  && (fabs(rm_i[2]) < max_y) && (fabs(rm_i[3]) < max_eta)  && !isnan(rm_i[0])) total_energy_in += p_i[0];
                   //otherwise keep track of energy outside hydro box
                   else total_energy_out += p_i[0];
               }
