@@ -22,20 +22,21 @@ __global__ void source_kernel(int Npart, int it,
                   + (threadIdx.y * blockDim.x) + threadIdx.x;
 
   int Ntot = params.NTOT;
+  int nev = params.NEV;
+  float sigma = params.SIGMA;
+  float sigman = params.SIGMAN;
+  float delta_tau = params.DELTA_TAU;
+  float t0 = params.T0;
+  int Nx = params.NX;
+  int Ny = params.NY;
+  int Nn = params.NN;
+  float dt = params.DT;
+  float dx = params.DX;
+  float dy = params.DY;
+  float dn = params.DN;
+  
   if (tid < Ntot)
   {
-    int nev = params.NEV;
-    float sigma = params.SIGMA;
-    float sigman = params.SIGMAN;
-    float delta_tau = params.DELTA_TAU;
-    float t0 = params.T0;
-    int Nx = params.NX;
-    int Ny = params.NY;
-    int Nn = params.NN;
-    float dt = params.DT;
-    float dx = params.DX;
-    float dy = params.DY;
-    float dn = params.DN;
     
     //reconstruct indices manually using
     // s = i + j * (Nx) + k * (Nx * Ny);
