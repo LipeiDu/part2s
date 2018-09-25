@@ -24,7 +24,7 @@ Smearing kernel
     float numerator = exp(dist);
     float delta = distt * d_tauInv;
     float ch = cosh(delta);
-    float kernel = 1.0/(ch * ch) * numerator;
+    float kernel = 1.0/(ch * ch) * numerator; // [1]
     
     float tauInv = 1.0 / tau;
     
