@@ -38,6 +38,7 @@ Smearing kernel
     float facN = prefactor * nevInv;
     float facHN = prefactor * hbarcNevInv; //doing average and unit conversion
     
+    // dtau*dx*dy*tau*deta
     Sb_d[tid] = facN  * Sb * tauInv; // [1/fm^4] = [1/fm^3] * [1] * [1/fm]
     St_d[tid] = facHN * St * tauInv; // [1/fm^5] = [1/(fm^4*GeV)] * [GeV] * [1/fm]
     Sx_d[tid] = facHN * Sx * tauInv; // [1/fm^5] = [1/(fm^4*GeV)] * [GeV] * [1/fm]
