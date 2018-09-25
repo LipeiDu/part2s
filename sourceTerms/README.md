@@ -20,6 +20,7 @@ Smearing kernel
     float ddy = fabs(rr[2]-r2_d[m]);
     float disttrs = ddx*ddx + ddy*ddy;
     float disttr = sqrt(disttrs);
+    float distn = fabs(rr[3]-r3_d[m]);
     float dist = -(disttrs * SigInv + distn*distn * SignInv);
     
     float numerator = exp(dist);
