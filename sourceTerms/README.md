@@ -28,6 +28,9 @@ Smearing kernel
     float kernel = 1.0/(ch * ch) * numerator;
     
     float tauInv = 1.0 / tau;
+    
+    Sb = Sb + kernel * b_i;
     St = St + kernel * p0_d[m];
+    Sb_d[tid] = facN  * Sb * tauInv;
     St_d[tid] = facHN * St * tauInv;
 ```
