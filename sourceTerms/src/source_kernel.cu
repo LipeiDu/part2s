@@ -100,15 +100,17 @@ __global__ void source_kernel(int Npart, int it,
               float delta = distt * d_tauInv;
               float ch = cosh(delta);
               float kernel = 1.0/(ch * ch) * numerator; // [1]
+              
+              float mptau = mi_d[m]/p0_d[m];
 
               if ( !isnan(kernel) )
               { // if kernel is nan for some reasons, skip this particle
                 // pi[m][4] is [GeV] by defination above
-                Sb = Sb + kernel * b_i; // [1]
-                St = St + kernel * p0_d[m]; // [GeV]
-                Sx = Sx + kernel * p1_d[m]; // [GeV]
-                Sy = Sy + kernel * p2_d[m]; // [GeV]
-                Sn = Sn + kernel * p3_d[m] * tauInv; // [GeV/fm] caution, definition and tau here
+                Sb = Sb + kernel * mptau * b_i; // [1]
+                St = St + kernel * mptau * p0_d[m]; // [GeV]
+                Sx = Sx + kernel * mptau * p1_d[m]; // [GeV]
+                Sy = Sy + kernel * mptau * p2_d[m]; // [GeV]
+                Sn = Sn + kernel * mptau * p3_d[m] * tauInv; // [GeV/fm] caution, definition and tau here
               }
             } //if (disttr < 3 * sigma)
           } //if (distn < 3 * sigman)
