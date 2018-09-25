@@ -28,12 +28,19 @@ Smearing kernel
     
     float tauInv = 1.0 / tau;
     
-    Sb = Sb + kernel * b_i;
-    St = St + kernel * p0_d[m];
+    // pi[m][4] is [GeV] by defination above
+    Sb = Sb + kernel * b_i; // [1]
+    St = St + kernel * p0_d[m]; // [GeV]
+    Sx = Sx + kernel * p1_d[m]; // [GeV]
+    Sy = Sy + kernel * p2_d[m]; // [GeV]
+    Sn = Sn + kernel * p3_d[m] * tauInv; // [GeV/fm] caution, definition and tau here
     
     float facN = prefactor * nevInv;
     float facHN = prefactor * hbarcNevInv; //doing average and unit conversion
     
-    Sb_d[tid] = facN  * Sb * tauInv;
-    St_d[tid] = facHN * St * tauInv;
+    Sb_d[tid] = facN  * Sb * tauInv; // [1/fm^4] = [1/fm^3] * [1] * [1/fm]
+    St_d[tid] = facHN * St * tauInv; // [1/fm^5] = [1/(fm^4*GeV)] * [GeV] * [1/fm]
+    Sx_d[tid] = facHN * Sx * tauInv; // [1/fm^5] = [1/(fm^4*GeV)] * [GeV] * [1/fm]
+    Sy_d[tid] = facHN * Sy * tauInv; // [1/fm^5] = [1/(fm^4*GeV)] * [GeV] * [1/fm]
+    Sn_d[tid] = facHN * Sn * tauInv; // [1/fm^6] = [1/(fm^4*GeV)] * [GeV/fm] * [1/fm]
 ```
