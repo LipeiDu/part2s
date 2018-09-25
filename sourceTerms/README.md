@@ -4,7 +4,6 @@
 
 Smearing kernel
 ```
-    float tauInv = 1.0 / tau;
     float SigInv = 1.0/(2.0*sigma*sigma);
     float SignInv = 1.0/(2.0*sigman*sigman);
     float d_tauInv = 1.0/delta_tau;
@@ -28,6 +27,7 @@ Smearing kernel
     float ch = cosh(delta);
     float kernel = 1.0/(ch * ch) * numerator;
     
+    float tauInv = 1.0 / tau;
     St = St + kernel * p0_d[m];
     St_d[tid] = facHN * St * tauInv;
 ```
