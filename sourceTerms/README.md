@@ -4,6 +4,7 @@
 
 Smearing kernel
 ```
+    float tauInv = 1.0 / tau;
     float SigInv = 1.0/(2.0*sigma*sigma);
     float SignInv = 1.0/(2.0*sigman*sigman);
     float d_tauInv = 1.0/delta_tau;
