@@ -13,7 +13,7 @@ Smearing kernel
     float prefac = 1.0/(2.0 * (2.0*PI*sigma*sigma) * sqrt(2.0*PI*sigman*sigman));
     float prefactor = d_tauInv * prefac;
     float facN = prefactor * nevInv;
-    float facHN = prefactor * hbarcNevInv;
+    float facHN = prefactor * hbarcNevInv; // hbarcNevInv = 1/(nev*hbarc), doing average and unit conversion
     
     float distt = fabs(rr[0]-r0_d[m]);
     float ddx = fabs(rr[1]-r1_d[m]);
