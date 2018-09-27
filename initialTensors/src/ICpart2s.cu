@@ -500,16 +500,16 @@ int main()
   cudaFree(Sy_d);
   cudaFree(Sn_d);
 
-  cudafree(Ttt_d);
-  cudafree(Ttx_d);
-  cudafree(Tty_d);
-  cudafree(Ttn_d);
-  cudafree(Txx_d);
-  cudafree(Txy_d);
-  cudafree(Txn_d);
-  cudafree(Tyy_d);
-  cudafree(Tyn_d);
-  cudafree(Tnn_d);
+  cudaFree(Ttt_d);
+  cudaFree(Ttx_d);
+  cudaFree(Tty_d);
+  cudaFree(Ttn_d);
+  cudaFree(Txx_d);
+  cudaFree(Txy_d);
+  cudaFree(Txn_d);
+  cudaFree(Tyy_d);
+  cudaFree(Tyn_d);
+  cudaFree(Tnn_d);
 
   printf("Done. Goodbye! \n");
 }
