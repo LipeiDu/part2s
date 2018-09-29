@@ -112,8 +112,8 @@ int main()
   int Nn = params.NN;
   int Nt = params.NT;
   int Ntot = params.NTOT;
-  float t0 = params.T0;
-  float dt = params.DT;
+  //float t0 = params.T0;
+  //float dt = params.DT;
   float dx = params.DX;
   float dy = params.DY;
   float dn = params.DN;
@@ -128,7 +128,7 @@ int main()
   //==========================================================================
   // read in the particle list from UrQMD; get the info. in Milne.
 
-  ifstream infile1("Set.dat");
+  ifstream infile1("test.f16");
 
   FILE *outfile1;
   char filname[255];
@@ -143,13 +143,16 @@ int main()
     p_i[j] = 0;
   }
   float m_i = 0;
-  float tform_i = 0;
+  //float tform_i = 0;
   float b_i = 0;
 
   int Npart = 0; // total number of particles
 
-  while (infile1 >> r_i[0] >> r_i[1] >> r_i[2] >> r_i[3] >> p_i[0] >> p_i[1] >> p_i[2] >> p_i[3] >> m_i >> tform_i >> b_i)
+  while (infile1 >> r_i[0] >> r_i[1] >> r_i[2] >> r_i[3] >> p_i[0] >> p_i[1] >> p_i[2] >> p_i[3] >> m_i)
   {
+
+    b_i = 0.0;
+
     // gamma factor of particle i
 
     float gamma_i = p_i[0]/m_i;
@@ -364,7 +367,7 @@ int main()
   //Sall = (float *)calloc( 5*Ntot, sizeof(float) );
 
   FILE *sourcefile, *tmunufile;
-  char source_fname[255];
+  //char source_fname[255];
   char finame[255], filename[255];
 
   //loop over time steps, calling kernel for each and writing to file
@@ -453,7 +456,7 @@ int main()
 
           int s = i + j * (Nx) + k * (Nx * Ny);
           fprintf(sourcefile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, norm * St[s], norm * Sx[s], norm * Sy[s], norm * Sn[s], norm * Sb[s]);
-          fprintf(tmunufile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, norm * Ttt[s], norm * Ttx[s], norm * Tty[s], norm * Ttn[s], norm * Txx[s], norm * Txy[s], norm * Txn[s], norm * Tyy[s], norm * Tyn[s], norm * Tnn[s]);
+          fprintf(tmunufile, "%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\n", x, y, eta, norm * Ttt[s], norm * Ttx[s], norm * Tty[s], norm * Ttn[s], norm * Txx[s], norm * Txy[s], norm * Txn[s], norm * Tyy[s], norm * Tyn[s], norm * Tnn[s]);
         } // for (int k )
       } //for (int j)
     } //for (int i )
