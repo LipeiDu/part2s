@@ -78,7 +78,7 @@ int main()
   ////////////////////////////////////////////////////////////////////////////
 
 
-  //declare parameters struct
+  // declare parameters struct
   struct parameters params;
 
   // default values
@@ -144,6 +144,13 @@ int main()
 
   int Npart = 0; // total number of particles
 
+  // to get the center of the energy distribution
+  float Etotx = 0.0;
+  float Etoty = 0.0;
+  float Etot = 0.0;
+  float CMx = 0.0;
+  float CMy = 0.0;
+
   while (infile1 >> r_i[0] >> r_i[1] >> r_i[2] >> r_i[3] >> p_i[0] >> p_i[1] >> p_i[2] >> p_i[3] >> m_i >> tform_i >> b_i)
   {
     // gamma factor of particle i
@@ -184,11 +191,65 @@ int main()
     fprintf(outfile1,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",rm_i[0],rm_i[1],rm_i[2],rm_i[3],pm_i[0],pm_i[1],pm_i[2],pm_i[3],m_i,b_i);
 
     Npart++;
+
+    // center of the energy distribution
+    Etot = Etot + p_i[0];
+    Etotx =  Etotx + p_i[0] * r_i[1];
+    Etoty =  Etoty + p_i[0] * r_i[2];
   }
 
   fclose(outfile1);
 
   printf("Total number of particles is %d.\n", Npart);
+
+  //==========================================================================
+  // recenter and rotate
+
+  // center
+
+  CMx = Etotx/Etot;
+  CMy = Etoty/Etot;
+
+  printf("Center of the energy distribution is:\n");
+  printf("CMx= %.3f, CMy= %.3f.\n", CMx, CMy);
+
+  // participant plane angle
+
+  ifstream infile2("Set.dat");
+
+  for (int j=0; j<4; ++j)
+  {
+    r_i[j] = 0;
+    p_i[j] = 0;
+  }
+
+  // to get the center of the energy distribution
+  float psi = 0.0;
+  float avgxy = 0.0;
+  float avgy2x2 = 0.0;
+
+  while (infile2 >> r_i[0] >> r_i[1] >> r_i[2] >> r_i[3] >> p_i[0] >> p_i[1] >> p_i[2] >> p_i[3] >> m_i >> tform_i >> b_i)
+  {
+    // gamma factor of particle i
+    float gamma_i = p_i[0]/m_i;
+
+    // calculate the final postion of each particle after the formation time
+    float tform = tauform * gamma_i;
+    float tformE = tform/p_i[0];
+
+    r_i[0] = r_i[0] + tform;
+    r_i[1] = r_i[1] + p_i[1] * tformE;
+    r_i[2] = r_i[2] + p_i[2] * tformE;
+    r_i[3] = r_i[3] + p_i[3] * tformE;
+
+    // average of xy and y^2-x^2
+    avgxy =  avgxy + p_i[0] * (r_i[1]-CMx) * (r_i[2]-CMy);
+    avgy2x2 =  avgy2x2 + p_i[0] * ((r_i[1]-CMx)*(r_i[1]-CMx) - (r_i[2]-CMy)*(r_i[2]-CMy));
+  }
+
+  // participant plane angle
+  psi = 0.5 * atan (2 * avgxy/avgy2x2);
+  printf("Participant plane angle is %.3f or %.3f.\n", psi, psi*180/3.1415);
 
   //==========================================================================
   // read in the particle list in Milne
@@ -221,7 +282,24 @@ int main()
   else
   {
     fseek(MFile,0L,SEEK_SET);
-    for (int i = 0; i < Npart; ++i) fscanf(MFile,"%e %e %e %e %e %e %e %e %e %e", &r0[i], &r1[i], &r2[i], &r3[i], &p0[i], &p1[i], &p2[i], &p3[i], &mi[i], &bi[i]);
+    for (int i = 0; i < Npart; ++i)
+    {
+        fscanf(MFile,"%e %e %e %e %e %e %e %e %e %e", &r0[i], &r1[i], &r2[i], &r3[i], &p0[i], &p1[i], &p2[i], &p3[i], &mi[i], &bi[i]);
+
+        // recenter and rotate
+
+        r1[i] = r1[i] - CMx;
+        r2[i] = r2[i] - CMy;
+        float xp =  r1[i] * cos(psi) + r2[i] * sin(psi);
+        float yp = -r1[i] * sin(psi) + r2[i] * cos(psi);
+        r1[i] = xp;
+        r2[i] = yp;
+
+        float p1p =  p1[i] * cos(psi) + p2[i] * sin(psi);
+        float p2p = -p1[i] * sin(psi) + p2[i] * cos(psi);
+        p1[i] = p1p;
+        p2[i] = p2p;
+    }
   }
   fclose(MFile);
 
