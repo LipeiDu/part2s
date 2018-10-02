@@ -1,6 +1,6 @@
-nev 10
-sigma 0.5
-sigman 1.0
+nev 5
+sigma 1.0
+sigman 0.5
 delta_tau 0.02
 tauform 0.0
 t0 0.12
