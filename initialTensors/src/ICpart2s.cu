@@ -186,6 +186,9 @@ int main()
     pm_i[2] = p_i[2]; // py
     pm_i[3] = mT_i * sinh(rapidity-rm_i[3]); // p_eta. Caution, different definition
 
+    // p^eta is set to 0
+    pm_i[3] = 0;
+
     // write Milne in output file
 
     fprintf(outfile1,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",rm_i[0],rm_i[1],rm_i[2],rm_i[3],pm_i[0],pm_i[1],pm_i[2],pm_i[3],m_i,b_i);
@@ -228,6 +231,7 @@ int main()
   else
   {
     fseek(MFile,0L,SEEK_SET);
+
     for (int i = 0; i < Npart; ++i) fscanf(MFile,"%e %e %e %e %e %e %e %e %e %e", &r0[i], &r1[i], &r2[i], &r3[i], &p0[i], &p1[i], &p2[i], &p3[i], &mi[i], &bi[i]);
   }
   fclose(MFile);
