@@ -154,7 +154,6 @@ int main()
   while (infile1 >> r_i[0] >> r_i[1] >> r_i[2] >> r_i[3] >> p_i[0] >> p_i[1] >> p_i[2] >> p_i[3] >> m_i >> tform_i >> b_i)
   {
     // gamma factor of particle i
-
     float gamma_i = p_i[0]/m_i;
 
     // calculate the final postion of each particle after the formation time
@@ -187,15 +186,24 @@ int main()
     pm_i[3] = mT_i * sinh(rapidity-rm_i[3]); // p_eta. Caution, different definition
 
     // write Milne in output file
+    //skip particles outside light cone
+    if ( isnan(rm_i[0]) || isnan(rm_i[3]) )
+    {
+      //print warning
+      printf("*Warning* : found particle outside light cone (excluding it...)\n");
+    }
+    else
+    {
+      fprintf(outfile1,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",rm_i[0],rm_i[1],rm_i[2],rm_i[3],pm_i[0],pm_i[1],pm_i[2],pm_i[3],m_i,b_i);
 
-    fprintf(outfile1,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",rm_i[0],rm_i[1],rm_i[2],rm_i[3],pm_i[0],pm_i[1],pm_i[2],pm_i[3],m_i,b_i);
+      Npart++;
 
-    Npart++;
+      // center of the energy distribution
+      Etot = Etot + p_i[0];
+      Etotx =  Etotx + p_i[0] * r_i[1];
+      Etoty =  Etoty + p_i[0] * r_i[2];
+    }
 
-    // center of the energy distribution
-    Etot = Etot + p_i[0];
-    Etotx =  Etotx + p_i[0] * r_i[1];
-    Etoty =  Etoty + p_i[0] * r_i[2];
   }
 
   fclose(outfile1);
@@ -440,7 +448,7 @@ int main()
       Sall[3 * Ntot + is] = Sy[is];
       Sall[4 * Ntot + is] = Sn[is];
     }
-    
+
     //printf("Writing source terms to file...\n\n");
     H5::H5File file(source_fname, H5F_ACC_TRUNC);
     // dataset dimensions
