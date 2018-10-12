@@ -1,5 +1,19 @@
 # part2s
 
+## code structer
+
+### For each event from UrQMD:
+* Get the particle list in Cartisian coordinates
+* Calculate the Milne coordinates at formation time, write in Milne.dat file
+* Calculate the Center of Mass of the event at the same time
+* Get the particle list in Cartisian coordinates again, and calculate the participant plane angle with respect to the CM
+* Open the particle list in Milne.dat file, recenter and rotate x, y and px, py with CM and participant plane angle
+* Write the new coordinates in a file (all following events in this file to be averaged over for source terms)
+### With the particle list from all events
+* Read in the coordinates and store in array
+* Calculate source terms
+
+
 ## notation and demension
 
 Smearing kernel
