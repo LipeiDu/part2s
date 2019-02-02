@@ -109,11 +109,11 @@ int main()
   int Nn = params.NN;
   int Nt = params.NT;
   int Ntot = params.NTOT;
-  //float t0 = params.T0;
-  //float dt = params.DT;
-  //float dx = params.DX;
-  //float dy = params.DY;
-  //float dn = params.DN;
+  float t0 = params.T0;
+  float dt = params.DT;
+  float dx = params.DX;
+  float dy = params.DY;
+  float dn = params.DN;
 
   ////////////////////////////////////////////////////////////////////////////
   //                            Process all event files                     //
@@ -510,9 +510,9 @@ int main()
   float *Sall;
   Sall = (float *)calloc( 5*Ntot, sizeof(float) );
 
-  //FILE *sourcefile;
+  FILE *sourcefile;
   char source_fname[255];
-  //char finame[255];
+  char finame[255];
 
   //loop over time steps, calling kernel for each and writing to file
   for (int n = 1; n < Nt+1; ++n)
@@ -566,7 +566,7 @@ int main()
     dataset.write(Sall, H5::PredType::NATIVE_FLOAT);
 
     //FOR TESTING write ascii files
-    /*
+    
     sprintf(finame, "%s%d.dat", "output/Sources", n);
     sourcefile = fopen(finame, "w");
     for (int i = 0; i < Nx; ++i)
@@ -586,7 +586,7 @@ int main()
       } //for (int j)
     } //for (int i )
     fclose(sourcefile);
-    */
+    
     //FOR TESTING write ascii files
 
   } // for (int n )
