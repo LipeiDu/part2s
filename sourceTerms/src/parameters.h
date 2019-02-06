@@ -13,7 +13,7 @@ struct parameters
 
 // smearing width
     float SIGMA; // width in transverse plane
-    float SIGMAN; // width in eta direction
+    float GAMMA_MAX; // cutoff of the Lorentz contraction
 
 // thermalization time and width
     float DELTA_TAU;

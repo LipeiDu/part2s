@@ -18,6 +18,9 @@
 
 using namespace std;
 
+////////////////////////////////////////////////////////////////////////////
+//                            Parameters reader                           //
+////////////////////////////////////////////////////////////////////////////
 
 void readInParameters(struct parameters &params)
 {
@@ -41,7 +44,7 @@ void readInParameters(struct parameters &params)
         fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
         params.SIGMA = dummyFloat;
         fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
-        params.SIGMAN = dummyFloat;
+        params.GAMMA_MAX = dummyFloat;
         fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
         params.DELTA_TAU = dummyFloat;
         fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
@@ -72,6 +75,8 @@ void readInParameters(struct parameters &params)
 
 int main()
 {
+  printf("\n\n\n");
+  printf("++++++++++++++Program started+++++++++++++++\n");
 
   ////////////////////////////////////////////////////////////////////////////
   //                            Initialize parameters                       //
@@ -84,7 +89,7 @@ int main()
   // default values
   params.NEV = 1;
   params.SIGMA = 1.0;
-  params.SIGMAN = 0.5;
+  params.GAMMA_MAX = 2.0;
   params.DELTA_TAU = 0.5;
   params.TAUFORM = 0.2;
   params.T0 = 0.5;
@@ -119,16 +124,21 @@ int main()
   //                            Process all event files                     //
   ////////////////////////////////////////////////////////////////////////////
     
+  // In this part, loop over all events; for each event, calculate the coordinates after formation time,
+  // calculate the center and angle, recenter and rotate; write the coordinates in Milen in AllSets.dat;
+    
   int Npart = 0; // total number of particles in all event files to be averaged over
+  int Nbtot = 0;
     
   FILE *allsetfile;
-  char setname[255];
-  sprintf(setname, "%s.dat", "output/AllSets"); // All set.dat will be written in this file after recentering and rotation
-  allsetfile = fopen(setname, "w");
+  char allsetname[255];
+  sprintf(allsetname, "%s.dat", "output/AllSets"); // All set.dat will be written in this file after recentering and rotation
+  allsetfile = fopen(allsetname, "w");
 
+  // loop over all events
   for (int iev=1; iev<params.NEV+1; ++iev)
   {
-
+      
       printf("**********Processing Set%d.dat**********\n", iev);
 
       FILE *eventfile;
@@ -150,21 +160,22 @@ int main()
       milnefile = fopen(milnename, "w");
       
       float r_i[4], p_i[4];
-      float rm_i[4], pm_i[4];
+      float rm_i[4];//, pm_i[4];
       
       for (int j=0; j<4; ++j)
       {
           r_i[j] = 0;
           p_i[j] = 0;
           rm_i[j] = 0;
-          pm_i[j] = 0;
+          //pm_i[j] = 0;
       }
       
       float m_i = 0;
       float tform_i = 0;
       float b_i = 0;
+      float g_i = 0;// gamma factor
       
-      int NpartEv = 0; // total number of particles
+      int NpartEv = 0; // total number of particles in this event
       
       // to get the center of the energy distribution
       float Etotx = 0.0;
@@ -185,11 +196,11 @@ int main()
             fscanf(eventfile, "%f %f %f %f %f %f %f %f %f %f %f\n", &r_i[0], &r_i[1], &r_i[2], &r_i[3], &p_i[0], &p_i[1], &p_i[2], &p_i[3], &m_i, &tform_i, &b_i);
 
             // gamma factor of particle i
-            float gamma_i = p_i[0]/m_i;
+            g_i = p_i[0]/m_i;
 
             // calculate the final postion of each particle after the formation time
 
-            float tform = tauform * gamma_i;
+            float tform = tauform * g_i;
             float tformE = tform/p_i[0];
 
             r_i[0] = r_i[0] + tform;
@@ -202,28 +213,28 @@ int main()
             rm_i[0] = sqrt(r_i[0]*r_i[0]-r_i[3]*r_i[3]); // tau
             rm_i[1] = r_i[1]; // x
             rm_i[2] = r_i[2]; // y
-            rm_i[3] = 0.5 * log((r_i[0]+r_i[3])/(r_i[0]-r_i[3])); // eta_s
+            rm_i[3] = 0.5 * log((r_i[0]+r_i[3])/(r_i[0]-r_i[3]+1.e-30)); // eta_s
 
-            float rapidity = 0.5 * log((p_i[0]+p_i[3])/(p_i[0]-p_i[3])); // rapidity
-            float mT_i = sqrt(m_i*m_i+p_i[1]*p_i[1]+p_i[2]*p_i[2]); // mT
+            //float rapidity = 0.5 * log((p_i[0]+p_i[3])/(p_i[0]-p_i[3]+1.e-30)); // rapidity
+            //float mT_i = sqrt(m_i*m_i+p_i[1]*p_i[1]+p_i[2]*p_i[2]); // mT
 
-            pm_i[0] = mT_i * cosh(rapidity-rm_i[3]); // p_tau
-            pm_i[1] = p_i[1]; // px
-            pm_i[2] = p_i[2]; // py
-            pm_i[3] = mT_i * sinh(rapidity-rm_i[3]); // p_eta. Caution, different definition
+            //pm_i[0] = mT_i * cosh(rapidity-rm_i[3]); // p_tau
+            //pm_i[1] = p_i[1]; // px
+            //pm_i[2] = p_i[2]; // py
+            //pm_i[3] = mT_i * sinh(rapidity-rm_i[3]); // p_eta. Caution, different definition
 
             // write Milne in output file
-            //skip particles outside light cone
+            // skip particles outside light cone
             if ( isnan(rm_i[0]) || isnan(rm_i[3]) )
             {
-              //print warning
               printf("*Warning* : found particle outside light cone (excluding it...)\n");
             }
             else
             {
-              fprintf(milnefile,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",rm_i[0],rm_i[1],rm_i[2],rm_i[3],pm_i[0],pm_i[1],pm_i[2],pm_i[3],m_i,b_i);
+              fprintf(milnefile,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",rm_i[0],rm_i[1],rm_i[2],rm_i[3],p_i[0],p_i[1],p_i[2],p_i[3],m_i,g_i,b_i);
 
               NpartEv++;
+              Nbtot = Nbtot + b_i;
 
               // center of the energy distribution
               Etot = Etot + p_i[0];
@@ -240,11 +251,15 @@ int main()
       
       Npart = Npart + NpartEv;
 
+      
       ////////////////////////////////////////////////////////////////////////////
       //                             Find CM and plane angle                    //
       ////////////////////////////////////////////////////////////////////////////
+      
+      // The center has almost been found at this point, but the angle needs to be calculated with respect to the center.
+      // So the particle list needs to be looped over again
 
-      // center
+      // Section a: center
       
       float CMx = 0.0;
       float CMy = 0.0;
@@ -256,12 +271,12 @@ int main()
 
       for (int j=0; j<4; ++j)
       {
-        r_i[j] = 0;
+        rm_i[j] = 0;
         p_i[j] = 0;
       }
       
       m_i = 0;
-      tform_i = 0;
+      g_i = 0;
       b_i = 0;
 
       // to get the center of the energy distribution
@@ -269,52 +284,32 @@ int main()
       float avgxy = 0.0;
       float avgy2x2 = 0.0;
       
-      // participant plane angle
+      // Section b: participant plane angle
       
-      eventfile = fopen(eventname, "r");
+      milnefile = fopen(milnename, "r");
       
-      if(eventfile==NULL){
-          printf("Set%d.dat could not be opened...\n", iev);
+      if(milnefile==NULL){
+          printf("Milne%d.dat could not be opened...\n", iev);
           //exit(-1);
       }
       else{
-          fseek(eventfile,0L,SEEK_SET);
-          fscanf(eventfile,"%*[^\n]%*c");//Skip the header line
+          fseek(milnefile,0L,SEEK_SET);
           
-          while(!feof(eventfile))
+          while(!feof(milnefile))
           {
-            fscanf(eventfile, "%f %f %f %f %f %f %f %f %f %f %f\n", &r_i[0], &r_i[1], &r_i[2], &r_i[3], &p_i[0], &p_i[1], &p_i[2], &p_i[3], &m_i, &tform_i, &b_i);
-
-            // gamma factor of particle i
-            float gamma_i = p_i[0]/m_i;
-
-            // calculate the final postion of each particle after the formation time
-            float tform = tauform * gamma_i;
-            float tformE = tform/p_i[0];
-
-            r_i[0] = r_i[0] + tform;
-            r_i[1] = r_i[1] + p_i[1] * tformE;
-            r_i[2] = r_i[2] + p_i[2] * tformE;
-            r_i[3] = r_i[3] + p_i[3] * tformE;
+              fscanf(milnefile, "%f %f %f %f %f %f %f %f %f %f %f\n", &rm_i[0], &rm_i[1], &rm_i[2], &rm_i[3], &p_i[0], &p_i[1], &p_i[2], &p_i[3], &m_i, &g_i, &b_i);
               
-            float rm_itau, rm_ieta;
-              
-            rm_itau = sqrt(r_i[0]*r_i[0]-r_i[3]*r_i[3]); // tau
-            rm_ieta = 0.5 * log((r_i[0]+r_i[3])/(r_i[0]-r_i[3])); // eta_s
-
-            if ( !isnan(rm_itau) && !isnan(rm_ieta) ){
-                // average of xy and y^2-x^2
-                avgxy =  avgxy + p_i[0] * (r_i[1]-CMx) * (r_i[2]-CMy);
-                avgy2x2 =  avgy2x2 + p_i[0] * ((r_i[1]-CMx)*(r_i[1]-CMx) - (r_i[2]-CMy)*(r_i[2]-CMy));
-            }
+              avgxy =  avgxy + p_i[0] * (rm_i[1]-CMx) * (rm_i[2]-CMy);
+              avgy2x2 =  avgy2x2 + p_i[0] * ((rm_i[1]-CMx)*(rm_i[1]-CMx) - (rm_i[2]-CMy)*(rm_i[2]-CMy));
           }
       }
-
+      
       // participant plane angle
-      psi = 0.5 * atan (2 * avgxy/avgy2x2);
+      psi = 0.5 * atan (2 * avgxy/(avgy2x2+1.e-30));
       printf("Participant plane angle is: %.3f rad or %.3f degree.\n", psi, psi*180/3.1415);
       
-      fclose(eventfile);
+      fclose(milnefile);
+
 
       ////////////////////////////////////////////////////////////////////////////
       //                             Recenter and rotate                        //
@@ -329,6 +324,7 @@ int main()
       float p2 = 0.0;
       float p3 = 0.0;
       float mi = 0.0;
+      float gi = 0.0;
       float bi = 0.0;
     
       milnefile = fopen(milnename, "r");
@@ -342,7 +338,7 @@ int main()
           
           while(1)
           {
-              fscanf(milnefile,"%e %e %e %e %e %e %e %e %e %e", &r0, &r1, &r2, &r3, &p0, &p1, &p2, &p3, &mi, &bi);
+              fscanf(milnefile,"%e %e %e %e %e %e %e %e %e %e %e", &r0, &r1, &r2, &r3, &p0, &p1, &p2, &p3, &mi, &gi, &bi);
               if(feof(milnefile)) break;
               
               // recenter and rotate
@@ -351,15 +347,11 @@ int main()
               r2 = r2 - CMy;
               float xp =  r1 * cos(psi) + r2 * sin(psi);
               float yp = -r1 * sin(psi) + r2 * cos(psi);
-              r1 = xp;
-              r2 = yp;
               
               float p1p =  p1 * cos(psi) + p2 * sin(psi);
               float p2p = -p1 * sin(psi) + p2 * cos(psi);
-              p1 = p1p;
-              p2 = p2p;
               
-              fprintf(allsetfile,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",r0,r1,r2,r3,p0,p1,p2,p3,mi,bi);
+              fprintf(allsetfile,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",r0,xp,yp,r3,p0,p1p,p2p,p3,mi,gi,bi);
           }
       }
       
@@ -369,17 +361,17 @@ int main()
   fclose(allsetfile);
     
   printf("***************************************\n");
-  printf("Total number of particles in All Sets is %d.\n", Npart);
+  printf("Total number of particles in All Sets is %d, net baryon number is %d.\n", Npart, Nbtot);
 
   ////////////////////////////////////////////////////////////////////////////
   //                             All particles Milne                        //
   ////////////////////////////////////////////////////////////////////////////
 
+  // read in all the particles in all events in Milne
 
-  //float ri[N][4], pi[N][4], mi[N], bi[N];
   float r0[Npart], r1[Npart], r2[Npart], r3[Npart];
   float p0[Npart], p1[Npart], p2[Npart], p3[Npart];
-  float mi[Npart], bi[Npart];
+  float mi[Npart], gi[Npart], bi[Npart];
 
   for (int i = 0; i < Npart; ++i)
   {
@@ -392,26 +384,24 @@ int main()
     p2[i] = 0.0;
     p3[i] = 0.0;
     mi[i] = 0.0;
+    gi[i] = 0.0;
     bi[i] = 0.0;
   }
 
-  FILE *MFile;
-  char fname[255];
-  sprintf(fname, "output/AllSets.dat");
-  MFile = fopen(fname, "r");
+  allsetfile = fopen(allsetname, "r");
 
-  if (MFile == NULL)
+  if (allsetfile == NULL)
     printf("The particle list in AllSets.dat couldn't be opened...\n");
   else
   {
-    fseek(MFile,0L,SEEK_SET);
+    fseek(allsetfile,0L,SEEK_SET);
     for (int i = 0; i < Npart; ++i)
     {
-        fscanf(MFile,"%e %e %e %e %e %e %e %e %e %e", &r0[i], &r1[i], &r2[i], &r3[i], &p0[i], &p1[i], &p2[i], &p3[i], &mi[i], &bi[i]);
-        //printf("%e %e %e %e %e %e %e %e %e %e\n", r0[i], r1[i], r2[i], r3[i], p0[i], p1[i], p2[i], p3[i], mi[i], bi[i]);
+        fscanf(allsetfile,"%e %e %e %e %e %e %e %e %e %e %e", &r0[i], &r1[i], &r2[i], &r3[i], &p0[i], &p1[i], &p2[i], &p3[i], &mi[i], &gi[i], &bi[i]);
+        //printf("%e %e %e %e %e %e %e %e %e %e %e\n", r0[i], r1[i], r2[i], r3[i], p0[i], p1[i], p2[i], p3[i], mi[i], gi[i], bi[i]);
     }
   }
-  fclose(MFile);
+  fclose(allsetfile);
 
   ////////////////////////////////////////////////////////////////////////////
   //                             Source terms                               //
@@ -431,7 +421,8 @@ int main()
   //declare and allocate device arrays to hold particle info from UrQMD
   float *p0_d, *p1_d, *p2_d, *p3_d;
   float *r0_d, *r1_d, *r2_d, *r3_d;
-  float *mi_d, *bi_d;
+  float *mi_d, *gi_d, *bi_d;
+    
   cudaMalloc( (void**) &p0_d, Npart * sizeof(float) );
   cudaMalloc( (void**) &p1_d, Npart * sizeof(float) );
   cudaMalloc( (void**) &p2_d, Npart * sizeof(float) );
@@ -441,6 +432,7 @@ int main()
   cudaMalloc( (void**) &r2_d, Npart * sizeof(float) );
   cudaMalloc( (void**) &r3_d, Npart * sizeof(float) );
   cudaMalloc( (void**) &mi_d, Npart * sizeof(float) );
+  cudaMalloc( (void**) &gi_d, Npart * sizeof(float) );
   cudaMalloc( (void**) &bi_d, Npart * sizeof(float) );
 
   //declare and allocate device source term arrays
@@ -469,6 +461,7 @@ int main()
   cudaMemcpy( r2_d, r2, Npart * sizeof(float), cudaMemcpyHostToDevice );
   cudaMemcpy( r3_d, r3, Npart * sizeof(float), cudaMemcpyHostToDevice );
   cudaMemcpy( mi_d, mi, Npart * sizeof(float), cudaMemcpyHostToDevice );
+  cudaMemcpy( gi_d, gi, Npart * sizeof(float), cudaMemcpyHostToDevice );
   cudaMemcpy( bi_d, bi, Npart * sizeof(float), cudaMemcpyHostToDevice );
 
   err = cudaGetLastError();
@@ -492,9 +485,11 @@ int main()
   int blocksX = (Nx+threadsX-1)/threadsX;
   int blocksY = (Ny+threadsY-1)/threadsY;
   int blocksZ = (Nn+threadsZ-1)/threadsZ;
+    
   printf("CUDA kernel parameters:\n");
   printf("dim3 grids = ( %d, %d, %d )\n", blocksX, blocksY, blocksZ);
   printf("dim3 threads = ( %d, %d, %d )\n", threadsX, threadsY, threadsZ);
+    
   dim3 grids( blocksX, blocksY, blocksZ );
   dim3 threads( threadsX, threadsY, threadsZ);
 
@@ -509,23 +504,28 @@ int main()
   //an array to hold all info for all the source terms compressed to 1d for hdf5 writer
   float *Sall;
   Sall = (float *)calloc( 5*Ntot, sizeof(float) );
+    
+  ////////////////////////////////////////////////////////////////////////////
+  //                             Calculation all time steps                 //
+  ////////////////////////////////////////////////////////////////////////////
 
   FILE *sourcefile;
   char source_fname[255];
   char finame[255];
+    
+  float Norm = 0.0;// test the normalization of the kernel, add up all time steps
 
   //loop over time steps, calling kernel for each and writing to file
   for (int n = 1; n < Nt+1; ++n)
   {
     if ( (n % 10) == 1 ) printf("Calculating source term for n = %d of %d\n", n, Nt);
+      
     int it = n-1;
+    //printf("it = %d\n", it);
+      
     sprintf(source_fname, "%s%d.h5", "output/Sources", n);
-    //printf("Launching kernel...\n");
-    source_kernel<<< grids, threads >>>(Npart, it,
-                          p0_d, p1_d, p2_d, p3_d,
-                          r0_d, r1_d, r2_d, r3_d,
-                          mi_d, bi_d,
-                          Sb_d, St_d, Sx_d, Sy_d, Sn_d, params);
+
+    source_kernel<<< grids, threads >>>(Npart, it, p0_d, p1_d, p2_d, p3_d, r0_d, r1_d, r2_d, r3_d, mi_d, gi_d, bi_d, Sb_d, St_d, Sx_d, Sy_d, Sn_d, params);
 
     err = cudaGetLastError();
     if (err != cudaSuccess)
@@ -533,7 +533,7 @@ int main()
       printf("Error in source kernel: %s\n", cudaGetErrorString(err));
       err = cudaSuccess;
     }
-    //else printf("Kernel finished, copying back to host...\n");
+    
     //now copy results from device to host
     cudaMemcpy( Sb, Sb_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
     cudaMemcpy( St, St_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
@@ -553,6 +553,7 @@ int main()
 
     //printf("Writing source terms to file...\n\n");
     H5::H5File file(source_fname, H5F_ACC_TRUNC);
+      
     // dataset dimensions
     hsize_t dimsf[4];
     dimsf[0] = Nx;
@@ -569,6 +570,7 @@ int main()
     
     sprintf(finame, "%s%d.dat", "output/Sources", n);
     sourcefile = fopen(finame, "w");
+      
     for (int i = 0; i < Nx; ++i)
     {
       for (int j = 0; j < Ny; ++j)
@@ -576,23 +578,32 @@ int main()
         for (int k = 0; k < Nn; ++k)
         {
           float tau = t0 + ((float)n - 1.0) * dt;
-          float x = ((float)i - ((float)Nx - 1.0)/2.0) * dx;
-          float y = ((float)j - ((float)Ny - 1.0)/2.0) * dy;
+          float x   = ((float)i - ((float)Nx - 1.0)/2.0) * dx;
+          float y   = ((float)j - ((float)Ny - 1.0)/2.0) * dy;
           float eta = ((float)k - ((float)Nn - 1.0)/2.0) * dn;
 
           int s = i + j * (Nx) + k * (Nx * Ny);
           fprintf(sourcefile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, St[s], Sx[s], Sy[s], Sn[s], Sb[s]);
+            
+          Norm = Norm + Sb[s] * tau;
         } // for (int k )
       } //for (int j)
     } //for (int i )
     fclose(sourcefile);
-    
+      
+  printf("Numerical Nb = %lf\n",Norm * dt * dx * dy * dn);
     //FOR TESTING write ascii files
-
   } // for (int n )
-
+    
+  Norm = Norm * dt * dx * dy * dn;
+  printf("Numerical Nb = %lf\n",Norm);
+    
+  ////////////////////////////////////////////////////////////////////////////
+  //                             Clean up                                   //
+  ////////////////////////////////////////////////////////////////////////////
+    
   printf("Freeing memory\n");
-  //clean up
+  
   free(Sb);
   free(St);
   free(Sx);
@@ -608,6 +619,7 @@ int main()
   cudaFree(r2_d);
   cudaFree(r3_d);
   cudaFree(mi_d);
+  cudaFree(gi_d);
   cudaFree(bi_d);
   cudaFree(Sb_d);
   cudaFree(St_d);
