@@ -160,14 +160,13 @@ int main()
       milnefile = fopen(milnename, "w");
       
       float r_i[4], p_i[4];
-      float rm_i[4];//, pm_i[4];
+      float rm_i[4];
       
       for (int j=0; j<4; ++j)
       {
           r_i[j] = 0;
           p_i[j] = 0;
           rm_i[j] = 0;
-          //pm_i[j] = 0;
       }
       
       float m_i = 0;
@@ -184,15 +183,16 @@ int main()
 
       if(eventfile==NULL){
         printf("Set%d.dat could not be opened...\n", iev);
-        //exit(-1);
       }
-      else{
+      else
+      {
         fseek(eventfile,0L,SEEK_SET);
         fscanf(eventfile,"%*[^\n]%*c");//Skip the header line
 
         while(!feof(eventfile))
         {
 
+            // read in particle list from UrQMD
             fscanf(eventfile, "%f %f %f %f %f %f %f %f %f %f %f\n", &r_i[0], &r_i[1], &r_i[2], &r_i[3], &p_i[0], &p_i[1], &p_i[2], &p_i[3], &m_i, &tform_i, &b_i);
 
             // gamma factor of particle i
@@ -215,15 +215,8 @@ int main()
             rm_i[2] = r_i[2]; // y
             rm_i[3] = 0.5 * log((r_i[0]+r_i[3])/(r_i[0]-r_i[3]+1.e-30)); // eta_s
 
-            //float rapidity = 0.5 * log((p_i[0]+p_i[3])/(p_i[0]-p_i[3]+1.e-30)); // rapidity
-            //float mT_i = sqrt(m_i*m_i+p_i[1]*p_i[1]+p_i[2]*p_i[2]); // mT
 
-            //pm_i[0] = mT_i * cosh(rapidity-rm_i[3]); // p_tau
-            //pm_i[1] = p_i[1]; // px
-            //pm_i[2] = p_i[2]; // py
-            //pm_i[3] = mT_i * sinh(rapidity-rm_i[3]); // p_eta. Caution, different definition
-
-            // write Milne in output file
+            // write Milne in output file (WARNING: nothing is in Milne in this file, 04/05/2019)
             // skip particles outside light cone
             if ( isnan(rm_i[0]) || isnan(rm_i[3]) )
             {
@@ -231,7 +224,8 @@ int main()
             }
             else
             {
-              fprintf(milnefile,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",rm_i[0],rm_i[1],rm_i[2],rm_i[3],p_i[0],p_i[1],p_i[2],p_i[3],m_i,g_i,b_i);
+              fprintf(milnefile,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",
+                      r_i[0],r_i[1],r_i[2],r_i[3],p_i[0],p_i[1],p_i[2],p_i[3],m_i,g_i,b_i);
 
               NpartEv++;
               Nbtot = Nbtot + b_i;
@@ -290,13 +284,13 @@ int main()
       
       if(milnefile==NULL){
           printf("Milne%d.dat could not be opened...\n", iev);
-          //exit(-1);
       }
       else{
           fseek(milnefile,0L,SEEK_SET);
           
           while(!feof(milnefile))
           {
+              // write particle info, x in Milne, p in Cartesian
               fscanf(milnefile, "%f %f %f %f %f %f %f %f %f %f %f\n", &rm_i[0], &rm_i[1], &rm_i[2], &rm_i[3], &p_i[0], &p_i[1], &p_i[2], &p_i[3], &m_i, &g_i, &b_i);
               
               avgxy =  avgxy + p_i[0] * (rm_i[1]-CMx) * (rm_i[2]-CMy);
@@ -331,7 +325,6 @@ int main()
       
       if(milnefile==NULL){
           printf("Milne%d.dat could not be opened...\n", iev);
-          //exit(-1);
       }
       else{
           fseek(milnefile,0L,SEEK_SET);
@@ -367,7 +360,7 @@ int main()
   //                             All particles Milne                        //
   ////////////////////////////////////////////////////////////////////////////
 
-  // read in all the particles in all events in Milne
+  // read in all the particles in all events in Cartesian
 
   float r0[Npart], r1[Npart], r2[Npart], r3[Npart];
   float p0[Npart], p1[Npart], p2[Npart], p3[Npart];
@@ -398,7 +391,6 @@ int main()
     for (int i = 0; i < Npart; ++i)
     {
         fscanf(allsetfile,"%e %e %e %e %e %e %e %e %e %e %e", &r0[i], &r1[i], &r2[i], &r3[i], &p0[i], &p1[i], &p2[i], &p3[i], &mi[i], &gi[i], &bi[i]);
-        //printf("%e %e %e %e %e %e %e %e %e %e %e\n", r0[i], r1[i], r2[i], r3[i], p0[i], p1[i], p2[i], p3[i], mi[i], gi[i], bi[i]);
     }
   }
   fclose(allsetfile);
@@ -521,7 +513,9 @@ int main()
     if ( (n % 10) == 1 ) printf("Calculating source term for n = %d of %d\n", n, Nt);
       
     int it = n-1;
-    //printf("it = %d\n", it);
+    float tau = t0 + ((float)it) * dt;
+    
+    printf("tau = %f\n", tau);
       
     sprintf(source_fname, "%s%d.h5", "output/Sources", n);
 
@@ -577,21 +571,23 @@ int main()
       {
         for (int k = 0; k < Nn; ++k)
         {
-          float tau = t0 + ((float)n - 1.0) * dt;
+          
           float x   = ((float)i - ((float)Nx - 1.0)/2.0) * dx;
           float y   = ((float)j - ((float)Ny - 1.0)/2.0) * dy;
           float eta = ((float)k - ((float)Nn - 1.0)/2.0) * dn;
 
           int s = i + j * (Nx) + k * (Nx * Ny);
+
           fprintf(sourcefile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, St[s], Sx[s], Sy[s], Sn[s], Sb[s]);
             
-          Norm = Norm + Sb[s] * tau;
+            Norm = Norm + Sb[s] * tau;
         } // for (int k )
       } //for (int j)
     } //for (int i )
     fclose(sourcefile);
       
-  printf("Numerical Nb = %lf\n",Norm * dt * dx * dy * dn);
+    printf("Numerical Nb = %lf\n",Norm * dt * dx * dy * dn);
+    //Norm = 0.0;
     //FOR TESTING write ascii files
   } // for (int n )
     
