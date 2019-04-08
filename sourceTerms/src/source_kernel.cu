@@ -1,5 +1,5 @@
 
-#include "parameters.h"
+#include "part2s.h"
 
 __host__ __device__ float KernelCartesian(float r0, float r1, float r2, float r3, float ri0, float ri1, float ri2, float ri3, float pi0, float pi1, float pi2, float pi3, float mi, float gi, float gmax, float vmax, float sigma2, float delta_tau, float d_tauInv, float SigInv){
     
@@ -8,15 +8,16 @@ __host__ __device__ float KernelCartesian(float r0, float r1, float r2, float r3
     // ********************************************************
     
     float mInv = 1/mi;
-    float u0 = pi0 * mInv;
+    //float u0 = pi0 * mInv;
     float u1 = pi1 * mInv;
     float u2 = pi2 * mInv;
     float u3 = pi3 * mInv;
+    float u0 = sqrt(1 + u1*u1 + u2*u2 + u3*u3);
+    
+    float gratio = gmax / gi;
     
     if (gi > gmax)
     {
-        float gratio = gmax / gi;
-
         float gi2 = gi * gi;
         float vi = sqrt(1-1/gi2);
         float vratio = vmax / vi;
@@ -49,20 +50,20 @@ __host__ __device__ float KernelCartesian(float r0, float r1, float r2, float r3
     
     if (dist4d <= 9 * sigma2 && udotx <= 4 * delta_tau) // if the particle's contribution is important
     {
-        // Smearing kernel
         float exponent = dist4d * SigInv;
         float exponentiation = exp(exponent);
         
         float uxnorm = udotx * d_tauInv;
         float ch = cosh(uxnorm);
         float chInv = 1/ch;
-        float kernel = chInv * chInv * exponentiation; // [1], only the cosh^2 and exp product
         
+        kernel = gratio * chInv * chInv * exponentiation; // [1], only cosh^2 * exp term
+
         if (isnan(kernel)){
             printf("Kernel is nan for this particle, set to 0...\n");
             kernel = 0.0;
         }
-        
+
      } // contribution check
     
      return kernel;
