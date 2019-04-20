@@ -6,7 +6,7 @@ CC = nvcc # to compile cuda
 #compiler flags
 # -g adds debug info
 # -Wall turns on most warnings
-CFLAGS = -lhdf5 -lhdf5_cpp  
+CFLAGS = -lhdf5 -lhdf5_cpp -lgsl -lgslcblas 
 #LIBS= 
 
 #source code directory

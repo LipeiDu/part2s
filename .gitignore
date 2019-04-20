@@ -3,3 +3,5 @@
 *.out
 *.e
 part2s
+Set*.dat
+test*.f*
