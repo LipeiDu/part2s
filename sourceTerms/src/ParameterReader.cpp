@@ -15,6 +15,7 @@ struct parameters
 
 // smearing width
     float SIGMA; // width in transverse plane
+    float SIGMAN;
     float GAMMA_MAX; // cutoff of the Lorentz contraction
 
 // thermalization time and width
@@ -44,6 +45,7 @@ void readInParameters(struct parameters &params)
     // default values
     params.NEV = 1;
     params.SIGMA = 1.0;
+    params.SIGMAN = 1.0;
     params.GAMMA_MAX = 2.0;
     params.DELTA_TAU = 0.5;
     params.TAUFORM = 0.2;
@@ -77,6 +79,8 @@ void readInParameters(struct parameters &params)
         params.NEV = dummyInt;
         fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
         params.SIGMA = dummyFloat;
+        fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
+        params.SIGMAN = dummyFloat;
         fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);
         params.GAMMA_MAX = dummyFloat;
         fscanf(fileIn, "%s\t%f\n", dummyChar, &dummyFloat);

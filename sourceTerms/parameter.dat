@@ -1,5 +1,6 @@
 nev 4
 sigma 0.5
+sigman 0.5
 gamma_max 20.0
 delta_tau 0.3
 tauform 0.1

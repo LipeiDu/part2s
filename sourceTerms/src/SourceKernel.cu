@@ -1,5 +1,6 @@
 
 #include "ParameterReader.cpp"
+//#define MILNE_KERNEL
 
 __host__ __device__ float KernelCartesian(float r0, float r1, float r2, float r3, float ri0, float ri1, float ri2, float ri3, float pi0, float pi1, float pi2, float pi3, float mi, float gi, float gmax, float vmax, float sigma2, float delta_tau, float d_tauInv, float SigInv, float *kernelT){
     
@@ -75,6 +76,36 @@ __host__ __device__ float KernelCartesian(float r0, float r1, float r2, float r3
      return kernel;
 }
 
+__host__ __device__ float KernelMilne(float r1, float r2, float r3, float rm1, float rm2, float rm3, float sigma, float sigman, float SigInv, float SignInv){
+
+    float kernel = 0.0;
+    
+    float distn = fabs(r3 - rm3);
+    float distn2 = distn * distn;
+    
+    if (distn < 4 * sigman)//if it's not far away in eta direction
+    {
+        float ddx = fabs(r1 - rm1);
+        float ddy = fabs(r2 - rm2);
+        
+        float disttr2 = ddx*ddx + ddy*ddy;
+        float disttr = sqrt(disttr2);
+        
+        if (disttr < 4 * sigma)//if the particle is not far away in the transverse plane
+        {
+            float dist = -(disttr2 * SigInv + distn2 * SignInv);
+            float kernel = exp(dist);
+        }
+    }
+    
+    if (isnan(kernel)){
+        printf("Kernel is nan for this particle, set to 0...\n");
+        kernel = 0.0;
+    }
+    
+    return kernel;
+}
+
 
 __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float *p2_d, float *p3_d, float *r0_d, float *r1_d, float *r2_d, float *r3_d, float *mi_d, float *gi_d, float *bi_d, float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, float *Ttt_d, float *Ttx_d, float *Tty_d, float *Ttn_d, float *Txx_d, float *Txy_d, float *Txn_d, float *Tyy_d, float *Tyn_d, float *Tnn_d, parameters params)
 {
@@ -84,6 +115,7 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
 
   // parameters
   float sigma = params.SIGMA;
+  float sigman = params.SIGMAN;
   float delta_tau = params.DELTA_TAU;
   float gmax = params.GAMMA_MAX;
   float t0 = params.T0;
@@ -118,7 +150,11 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
   // proper time
   float tau = t0 + ((float)it) * dt;
   float tauInv = 1/tau;
-
+    
+  // smearing in Milne
+  float prefacMilne = 1/(pow(2.0*PI,1.5) * sigma2 * sigman) * tauInv;
+  float SignInv =  1.0/(2.0*sigman*sigman);
+  float facTensorMilne = prefacMilne * nevInv / hbarc;
   
   //==========================================================================
   // loop over all cells (x, y, eta)
@@ -160,6 +196,11 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
         float Tnn = 0.0;
 #endif
 
+        // ****************************************************************************
+        // OPTION I: Smearing in Cartesian with Lorentz contraction
+        // ****************************************************************************
+      
+#ifndef MILNE_KERNEL
         //==========================================================================
         // loop over all particles
 
@@ -223,6 +264,54 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
         Tyy_d[cid] = facTensor * Tyy;
         Tyn_d[cid] = facTensor * Tyn;
         Tnn_d[cid] = facTensor * Tnn; // [1/fm^6] = [1/(GeV*fm^4)] * [GeV/fm^2]
+#endif
+      
+      // ****************************************************************************
+      // OPTION II: Smearing in Milne
+      // ****************************************************************************
+#else
+      for (int m = 0; m < Npart; ++m)
+      {
+          
+          float kernelT = 0.0;
+          
+          float rm0 = sqrt(r0_d[m] * r0_d[m] - r3_d[m] * r3_d[m]);
+          float rm3 = 0.5 * log((r0_d[m] + r3_d[m]) / (r0_d[m] - r3_d[m] + 1.e-30));
+          float pm0 = cheta * p0_d[m] - sheta * p3_d[m];
+          float pm3 = (-sheta * p0_d[m] + cheta * p3_d[m]) * tauInv;
+          
+          kernelT = KernelMilne(r1, r2, r3, r1_d[m], r2_d[m], rm3, sigma, sigman, SigInv, SignInv);
+
+          float ptauInv = 1 / pm0; // pm0 is p^tau
+          
+          Ttt = Ttt + kernelT * ptauInv * pm0 * pm0; // kernelT is unitless
+          Ttx = Ttx + kernelT * ptauInv * pm0 * p1_d[m];
+          Tty = Tty + kernelT * ptauInv * pm0 * p2_d[m];
+          Ttn = Ttn + kernelT * ptauInv * pm0 * pm3;
+          Txx = Txx + kernelT * ptauInv * p1_d[m] * p1_d[m];
+          Txy = Txy + kernelT * ptauInv * p1_d[m] * p2_d[m];
+          Txn = Txn + kernelT * ptauInv * p1_d[m] * pm3;
+          Tyy = Tyy + kernelT * ptauInv * p2_d[m] * p2_d[m];
+          Tyn = Tyn + kernelT * ptauInv * p2_d[m] * pm3;
+          Tnn = Tnn + kernelT * ptauInv * pm3 * pm3; //
+      } //for (int m = 0; m < N; ++m)
+      
+      Sb_d[cid] = 0.0;
+      St_d[cid] = 0.0;
+      Sx_d[cid] = 0.0;
+      Sy_d[cid] = 0.0;
+      Sn_d[cid] = 0.0;
+
+      Ttt_d[cid] = facTensorMilne * Ttt;
+      Ttx_d[cid] = facTensorMilne * Ttx;
+      Tty_d[cid] = facTensorMilne * Tty;
+      Ttn_d[cid] = facTensorMilne * Ttn;
+      Txx_d[cid] = facTensorMilne * Txx;
+      Txy_d[cid] = facTensorMilne * Txy;
+      Txn_d[cid] = facTensorMilne * Txn;
+      Tyy_d[cid] = facTensorMilne * Tyy;
+      Tyn_d[cid] = facTensorMilne * Tyn;
+      Tnn_d[cid] = facTensorMilne * Tnn;
 #endif
    } //if (cid < Ntot)
 }
