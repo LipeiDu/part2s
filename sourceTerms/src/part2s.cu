@@ -122,6 +122,8 @@ int main()
   printf("Calculating source terms...\n");
     
   float Norm = 0.0;// test the normalization of the kernel, add up all time steps
+  float T00total = 0.0;
+  float S0total = 0.0;
 
   //loop over time steps, calling kernel for each and writing to file
   for (int n = 1; n < Nt+1; ++n)
@@ -130,15 +132,22 @@ int main()
       
     int it = n-1;
     float tau = t0 + ((float)it) * dt;
+    float dV = tau * dt * dx * dy * dn;
     
     printf("tau = %f\n", tau);
+      
+    // conservation test
+    float dT00tot = 0.0;
+    float dS0tot = 0.0;
     
-
     source_kernel<<< grids, threads >>>(Npart, it, p0_d, p1_d, p2_d, p3_d, r0_d, r1_d, r2_d, r3_d, mi_d, gi_d, bi_d,
                                         Sb_d, St_d, Sx_d, Sy_d, Sn_d, Ttt_d, Ttx_d, Tty_d, Ttn_d, Txx_d, Txy_d, Txn_d,
-                                        Tyy_d, Tyn_d, Tnn_d, params);
+                                        Tyy_d, Tyn_d, Tnn_d, &dT00tot, &dS0tot, params);
 
     copyDeviceToHostMemory(Ntot, err);
+      
+    T00total = T00total + dT00tot * dV;
+    S0total = S0total + dS0tot * dV;
       
     // Landau matching
 #ifdef INITIAL_TENSOR
@@ -161,6 +170,8 @@ int main()
     writeTensorsASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Norm);
 
   } // for (int n ) time steps
+    
+  printf("Integrated T00 is %lf, integrated S0 is %lf", T00total, S0total);
     
   ////////////////////////////////////////////////////////////////////////////
   //                             Clean up                                   //

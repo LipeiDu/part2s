@@ -107,7 +107,24 @@ __host__ __device__ float KernelMilne(float r1, float r2, float r3, float rm1, f
 }
 
 
-__global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float *p2_d, float *p3_d, float *r0_d, float *r1_d, float *r2_d, float *r3_d, float *mi_d, float *gi_d, float *bi_d, float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, float *Ttt_d, float *Ttx_d, float *Tty_d, float *Ttn_d, float *Txx_d, float *Txy_d, float *Txn_d, float *Tyy_d, float *Tyn_d, float *Tnn_d, parameters params)
+__host__ __device__ float TttTot(float tau, float eta, float Ttt, float Ttx, float Tty, float Ttn, float Txx, float Txy, float Txn, float Tyy, float Tyn, float Tnn){
+    
+    float cosheta = cosh(eta);
+    float sinheta = sinh(eta);
+    
+    return cosheta * cosheta * Ttt + 2 * tau * cosheta * sinheta * Ttn + tau * tau * sinheta * sinheta * Tnn;
+}
+
+__host__ __device__ float StTot(float tau, float eta, float St, float Sx, float Sy, float Sn){
+    
+    float cosheta = cosh(eta);
+    float sinheta = sinh(eta);
+    
+    return cosheta * St + tau * sinheta * Sn;
+}
+
+
+__global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float *p2_d, float *p3_d, float *r0_d, float *r1_d, float *r2_d, float *r3_d, float *mi_d, float *gi_d, float *bi_d, float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, float *Ttt_d, float *Ttx_d, float *Tty_d, float *Ttn_d, float *Txx_d, float *Txy_d, float *Txn_d, float *Tyy_d, float *Tyn_d, float *Tnn_d, float *T00total, float *S0total, parameters params)
 {
 
   long int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
@@ -161,6 +178,7 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
     
   if (cid < Ntot)
   {
+      
         // reconstruct indices manually using
         int k = cid / (Nx * Ny);
         int j = ( cid - (k * Nx * Ny) ) / Nx;
@@ -313,5 +331,8 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
       Tyn_d[cid] = facTensorMilne * Tyn;
       Tnn_d[cid] = facTensorMilne * Tnn;
 #endif
+      
+      *T00total = *T00total + TttTot(r0, r3, Ttt_d[cid], Ttx_d[cid], Tty_d[cid], Ttn_d[cid], Txx_d[cid], Txy_d[cid], Txn_d[cid], Tyy_d[cid], Tyn_d[cid], Tnn_d[cid]);
+      *S0total = *S0total + StTot(r0, r3, St_d[cid], Sx_d[cid], Sy_d[cid], Sn_d[cid]);
    } //if (cid < Ntot)
 }
