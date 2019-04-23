@@ -124,60 +124,63 @@ __host__ __device__ float StTot(float tau, float eta, float St, float Sx, float 
 }
 
 
-__global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float *p2_d, float *p3_d, float *r0_d, float *r1_d, float *r2_d, float *r3_d, float *mi_d, float *gi_d, float *bi_d, float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, float *Ttt_d, float *Ttx_d, float *Tty_d, float *Ttn_d, float *Txx_d, float *Txy_d, float *Txn_d, float *Tyy_d, float *Tyn_d, float *Tnn_d, float *T00total, float *S0total, parameters params)
+__global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float *p2_d, float *p3_d, float *r0_d, float *r1_d, float *r2_d, float *r3_d, float *mi_d, float *gi_d, float *bi_d, float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, float *Ttt_d, float *Ttx_d, float *Tty_d, float *Ttn_d, float *Txx_d, float *Txy_d, float *Txn_d, float *Tyy_d, float *Tyn_d, float *Tnn_d, float *T00tot_d, float *S0tot_d, parameters params)
 {
 
-  long int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
-  long int cid = blockId * (blockDim.x * blockDim.y * blockDim.z) + (threadIdx.z * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+    long int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+    long int cid = blockId * (blockDim.x * blockDim.y * blockDim.z) + (threadIdx.z * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
-  // parameters
-  float sigma = params.SIGMA;
-  float sigman = params.SIGMAN;
-  float delta_tau = params.DELTA_TAU;
-  float gmax = params.GAMMA_MAX;
-  float t0 = params.T0;
-  int nev = params.NEV;
-  int Ntot = params.NTOT;
-  int Nx = params.NX;
-  int Ny = params.NY;
-  int Nn = params.NN;
-  float dt = params.DT;
-  float dx = params.DX;
-  float dy = params.DY;
-  float dn = params.DN;
+    // parameters
+    float sigma = params.SIGMA;
+    float sigman = params.SIGMAN;
+    float delta_tau = params.DELTA_TAU;
+    float gmax = params.GAMMA_MAX;
+    float t0 = params.T0;
+    int nev = params.NEV;
+    int Ntot = params.NTOT;
+    int Nx = params.NX;
+    int Ny = params.NY;
+    int Nn = params.NN;
+    float dt = params.DT;
+    float dx = params.DX;
+    float dy = params.DY;
+    float dn = params.DN;
   
-  // common factors
-  float sigma2 = sigma*sigma;
-  float SigInv = 1.0/(2.0*sigma2);
-  float prefac = 1.0/pow(2.0*PI*sigma2,1.5); //[1/fm^3]
+    // common factors
+    float sigma2 = sigma*sigma;
+    float SigInv = 1.0/(2.0*sigma2);
+    float prefac = 1.0/pow(2.0*PI*sigma2,1.5); //[1/fm^3]
     
-  float d_tauInv = 1.0/delta_tau;
-  float prefactor = 0.5 * d_tauInv * prefac;
+    float d_tauInv = 1.0/delta_tau;
+    float prefactor = 0.5 * d_tauInv * prefac;
     
-  float nevInv = 1.0/(float)nev;
+    float nevInv = 1.0/(float)nev;
 
-  float facB = prefactor * nevInv; //[1/fm^4]
-  float facT = prefactor * nevInv / hbarc; //[1/(GeV*fm^5)], momentum from UrQMD is in [GeV], but in Hydro code we need sources in [fm]
-  float facTensor = prefac * nevInv / hbarc; //[1/(GeV*fm^4)]
+    float facB = prefactor * nevInv; //[1/fm^4]
+    float facT = prefactor * nevInv / hbarc; //[1/(GeV*fm^5)], momentum from UrQMD is in [GeV], but in Hydro code we need sources in [fm]
+    float facTensor = prefac * nevInv / hbarc; //[1/(GeV*fm^4)]
     
-  // gamma regulation
-  float gmax2 = gmax * gmax;
-  float vmax = sqrt(1-1/gmax2);
+    // gamma regulation
+    float gmax2 = gmax * gmax;
+    float vmax = sqrt(1-1/gmax2);
     
-  // proper time
-  float tau = t0 + ((float)it) * dt;
-  float tauInv = 1/tau;
+    // proper time
+    float tau = t0 + ((float)it) * dt;
+    float tauInv = 1/tau;
     
-  // smearing in Milne
-  float prefacMilne = 1/(pow(2.0*PI,1.5) * sigma2 * sigman) * tauInv;
-  float SignInv =  1.0/(2.0*sigman*sigman);
-  float facTensorMilne = prefacMilne * nevInv / hbarc;
+    // smearing in Milne
+    float prefacMilne = 1/(pow(2.0*PI,1.5) * sigma2 * sigman) * tauInv;
+    float SignInv =  1.0/(2.0*sigman*sigman);
+    float facTensorMilne = prefacMilne * nevInv / hbarc;
+
+    *T00tot_d = 0.0;
+    *S0tot_d = 0.0;
   
-  //==========================================================================
-  // loop over all cells (x, y, eta)
+    //==========================================================================
+    // loop over all cells (x, y, eta)
     
-  if (cid < Ntot)
-  {
+    if (cid < Ntot)
+    {
       
         // reconstruct indices manually using
         int k = cid / (Nx * Ny);
@@ -332,7 +335,7 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
       Tnn_d[cid] = facTensorMilne * Tnn;
 #endif
       
-      *T00total = *T00total + TttTot(r0, r3, Ttt_d[cid], Ttx_d[cid], Tty_d[cid], Ttn_d[cid], Txx_d[cid], Txy_d[cid], Txn_d[cid], Tyy_d[cid], Tyn_d[cid], Tnn_d[cid]);
-      *S0total = *S0total + StTot(r0, r3, St_d[cid], Sx_d[cid], Sy_d[cid], Sn_d[cid]);
+      *T00tot_d = *T00tot_d + TttTot(r0, r3, Ttt_d[cid], Ttx_d[cid], Tty_d[cid], Ttn_d[cid], Txx_d[cid], Txy_d[cid], Txn_d[cid], Tyy_d[cid], Tyn_d[cid], Tnn_d[cid]);
+      *S0tot_d = *S0tot_d + StTot(r0, r3, St_d[cid], Sx_d[cid], Sy_d[cid], Sn_d[cid]);
    } //if (cid < Ntot)
 }

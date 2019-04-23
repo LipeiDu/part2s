@@ -13,6 +13,8 @@ extern float *mi_d, *gi_d, *bi_d;
 //declare and allocate device source term arrays
 extern float *Sb_d, *St_d, *Sx_d, *Sy_d, *Sn_d;
 
+extern float *dT00tot_d, *dS0tot_d;
+
 ////////////////////////////////////////////////////////////////////////////
 // host arrays
 ////////////////////////////////////////////////////////////////////////////
@@ -27,6 +29,8 @@ extern float *Sall;
 extern float *Ttt_d, *Ttx_d, *Tty_d, *Ttn_d, *Txx_d, *Txy_d, *Txn_d, *Tyy_d, *Tyn_d, *Tnn_d;
 extern float **stressTensor, **shearTensor, **flowVelocity;
 extern float *energyDensity, *pressure, *bulkPressure;
+
+extern float *dT00tot, *dS0tot;
 
 ////////////////////////////////////////////////////////////////////////////
 // allocate
@@ -43,6 +47,8 @@ float *Sall;
 float *Ttt_d, *Ttx_d, *Tty_d, *Ttn_d, *Txx_d, *Txy_d, *Txn_d, *Tyy_d, *Tyn_d, *Tnn_d;
 float **stressTensor, **shearTensor, **flowVelocity;
 float *energyDensity, *pressure, *bulkPressure;
+
+float *dT00tot_d, *dS0tot_d, *dT00tot, *dS0tot;
 
 
 void allocateDeviceMemory(int Npart, int Ntot, cudaError_t err){
@@ -71,6 +77,9 @@ void allocateDeviceMemory(int Npart, int Ntot, cudaError_t err){
     cudaMemset( Sx_d, 0.0, Ntot * sizeof(float));
     cudaMemset( Sy_d, 0.0, Ntot * sizeof(float));
     cudaMemset( Sn_d, 0.0, Ntot * sizeof(float));
+    
+    cudaMalloc((void**) &dT00tot_d, sizeof(float));
+    cudaMalloc((void**) &dS0tot_d, sizeof(float));
     
 #ifdef INITIAL_TENSOR
     //declare and allocate device tensor arrays
@@ -117,6 +126,9 @@ void allocateHostMemory(int Ntot){
     
     //an array to hold all info for all the source terms compressed to 1d for hdf5 writer
     Sall = (float *)calloc( 5*Ntot, sizeof(float) );
+    
+    dT00tot = (float *)calloc( 1, sizeof(float) );
+    dS0tot = (float *)calloc( 1, sizeof(float) );
     
 #ifdef INITIAL_TENSOR
     //host arrays for tensor
@@ -176,6 +188,9 @@ void copyDeviceToHostMemory(int Ntot, cudaError_t err){
     cudaMemcpy( Sy, Sy_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
     cudaMemcpy( Sn, Sn_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
     
+    cudaMemcpy( dT00tot, dT00tot_d, sizeof(float), cudaMemcpyDeviceToHost );
+    cudaMemcpy( dS0tot, dS0tot_d, sizeof(float), cudaMemcpyDeviceToHost );
+    
 #ifdef INITIAL_TENSOR
     cudaMemcpy( stressTensor[0], Ttt_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
     cudaMemcpy( stressTensor[1], Ttx_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
@@ -198,6 +213,9 @@ void freeMemory(){
     free(Sy);
     free(Sn);
     
+    free(dT00tot);
+    free(dS0tot);
+    
     cudaFree(p0_d);
     cudaFree(p1_d);
     cudaFree(p2_d);
@@ -215,6 +233,9 @@ void freeMemory(){
     cudaFree(Sy_d);
     cudaFree(Sn_d);
     
+    cudaFree(dT00tot_d);
+    cudaFree(dS0tot_d);
+
 #ifdef INITIAL_TENSOR
     for(int i = 0; i < 10; i++)
         free(stressTensor[i]);
