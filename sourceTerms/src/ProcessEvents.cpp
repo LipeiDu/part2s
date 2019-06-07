@@ -6,6 +6,8 @@
 #include <string>
 #include <iomanip>
 
+#include "ParameterReader.cpp"
+
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////
@@ -373,6 +375,13 @@ void readInFormedParticles(int Npart, float *r0, float *r1, float *r2, float *r3
         for (int i = 0; i < Npart; ++i)
         {
             fscanf(allsetfile,"%e %e %e %e %e %e %e %e %e %e %e", &r0[i], &r1[i], &r2[i], &r3[i], &p0[i], &p1[i], &p2[i], &p3[i], &mi[i], &gi[i], &bi[i]);
+            
+            // change unit from GeV to 1/fm
+            p0[i] *= 1/hbarc;
+            p1[i] *= 1/hbarc;
+            p2[i] *= 1/hbarc;
+            p3[i] *= 1/hbarc;
+            mi[i] *= 1/hbarc;
         }
     }
     fclose(allsetfile);

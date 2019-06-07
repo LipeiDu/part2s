@@ -1,4 +1,5 @@
 
+#include <math.h>
 #include "ParameterReader.cpp"
 //#define MILNE_KERNEL
 
@@ -27,6 +28,8 @@ __host__ __device__ float KernelCartesian(float r0, float r1, float r2, float r3
         u1 = u1 * ratio;
         u2 = u2 * ratio;
         u3 = u3 * ratio;
+        
+        gi = u0;
     }
     
     // ********************************************************
@@ -44,27 +47,31 @@ __host__ __device__ float KernelCartesian(float r0, float r1, float r2, float r3
     float d2 = r2 - ri2;
     float d3 = z  - ri3;
     
-    float dxsqd = d0 * d0 - d1 * d1 - d2 * d2 - d3 * d3;
-    float udotx = u0 * d0 - u1 * d1 - u2 * d2 - u3 * d3;
-    float dist4d = dxsqd - udotx * udotx;
+    float distTem = d0 / gi;
+    float dr2 = d1 * d1 + d2 * d2 + d3 * d3;
+    float udr = u1 * d1 + u2 * d2 + u3 * d3;
+    float distSpa2 = dr2 + udr * udr;
     
-    if (dist4d <= 9 * sigma2 && udotx <= 4 * delta_tau) // if the particle's contribution is important
+    if (distSpa2 <= 9 * sigma2 && distTem <= 3 * delta_tau) // if the particle's contribution is important
     {
-        float exponent = dist4d * SigInv;
-        float exponentiation = exp(exponent);
+        float expSpace = - distSpa2 * SigInv;
+        float expS = exp(expSpace);
         
-        float uxnorm = udotx * d_tauInv;
-        float ch = cosh(uxnorm);
-        float chInv = 1/ch;
+        float distTem2 = distTem * distTem;
+        float expTem = exp(- distTem2 * d_tauInv * d_tauInv / 2);
         
-        kernel = gratio * chInv * chInv * exponentiation; // [1], only cosh^2 * exp * gamma term
+        // kernel for dynamical sources after taking derivatives
+        kernel = expS * expTem; // [1], not including the factors
 
         if (isnan(kernel)){
             printf("Kernel is nan for this particle, set to 0...\n");
             kernel = 0.0;
         }
         
-        *kernelT = gratio * exponentiation;
+        // kernel for tensors before taking derivatives; fluid tensor, not particle tensor
+        float erfExp = 0.5 * ( erf(distTem * d_tauInv / 1.41421) + 1 );
+        
+        *kernelT = erfExp * expS;
         
         if (isnan(*kernelT)){
             printf("KernelT is nan for this particle, set to 0...\n");
@@ -94,7 +101,7 @@ __host__ __device__ float KernelMilne(float r1, float r2, float r3, float rm1, f
         if (disttr < 4 * sigma)//if the particle is not far away in the transverse plane
         {
             float dist = -(disttr2 * SigInv + distn2 * SignInv);
-            float kernel = exp(dist);
+            kernel = exp(dist);
         }
     }
     
@@ -107,24 +114,7 @@ __host__ __device__ float KernelMilne(float r1, float r2, float r3, float rm1, f
 }
 
 
-__host__ __device__ float TttTot(float tau, float eta, float Ttt, float Ttx, float Tty, float Ttn, float Txx, float Txy, float Txn, float Tyy, float Tyn, float Tnn){
-    
-    float cosheta = cosh(eta);
-    float sinheta = sinh(eta);
-    
-    return cosheta * cosheta * Ttt + 2 * tau * cosheta * sinheta * Ttn + tau * tau * sinheta * sinheta * Tnn;
-}
-
-__host__ __device__ float StTot(float tau, float eta, float St, float Sx, float Sy, float Sn){
-    
-    float cosheta = cosh(eta);
-    float sinheta = sinh(eta);
-    
-    return cosheta * St + tau * sinheta * Sn;
-}
-
-
-__global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float *p2_d, float *p3_d, float *r0_d, float *r1_d, float *r2_d, float *r3_d, float *mi_d, float *gi_d, float *bi_d, float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, float *Ttt_d, float *Ttx_d, float *Tty_d, float *Ttn_d, float *Txx_d, float *Txy_d, float *Txn_d, float *Tyy_d, float *Tyn_d, float *Tnn_d, float *T00tot_d, float *S0tot_d, parameters params)
+__global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float *p2_d, float *p3_d, float *r0_d, float *r1_d, float *r2_d, float *r3_d, float *mi_d, float *gi_d, float *bi_d, float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, float *Ttt_d, float *Ttx_d, float *Tty_d, float *Ttn_d, float *Txx_d, float *Txy_d, float *Txn_d, float *Tyy_d, float *Tyn_d, float *Tnn_d, parameters params)
 {
 
     long int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
@@ -145,20 +135,22 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
     float dx = params.DX;
     float dy = params.DY;
     float dn = params.DN;
-  
-    // common factors
-    float sigma2 = sigma*sigma;
-    float SigInv = 1.0/(2.0*sigma2);
-    float prefac = 1.0/pow(2.0*PI*sigma2,1.5); //[1/fm^3]
-    
-    float d_tauInv = 1.0/delta_tau;
-    float prefactor = 0.5 * d_tauInv * prefac;
     
     float nevInv = 1.0/(float)nev;
-
-    float facB = prefactor * nevInv; //[1/fm^4]
-    float facT = prefactor * nevInv / hbarc; //[1/(GeV*fm^5)], momentum from UrQMD is in [GeV], but in Hydro code we need sources in [fm]
-    float facTensor = prefac * nevInv / hbarc; //[1/(GeV*fm^4)]
+  
+    // common factors
+    float sigma2 = sigma * sigma;
+    float sigma3 = sigma2 * sigma;
+    float SigInv = 1.0 / (2.0 * sigma2);
+    float spaceGaussianFactor = 1.0 / pow(2.0*PI,1.5) / sigma3; //[1/fm^3]
+    
+    float d_tauInv = 1.0/delta_tau;
+    float timeGaussianFactor = 1.0 / sqrt(2.0*PI) / delta_tau; //[1/fm]
+    
+    float combinedFactor = spaceGaussianFactor * timeGaussianFactor; //[1/fm^4]
+    
+    float facSource = combinedFactor * nevInv; //[1/fm^4]
+    float facTensor = spaceGaussianFactor * nevInv; //[1/(fm^3)]
     
     // gamma regulation
     float gmax2 = gmax * gmax;
@@ -171,10 +163,7 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
     // smearing in Milne
     float prefacMilne = 1/(pow(2.0*PI,1.5) * sigma2 * sigman) * tauInv;
     float SignInv =  1.0/(2.0*sigman*sigman);
-    float facTensorMilne = prefacMilne * nevInv / hbarc;
-
-    *T00tot_d = 0.0;
-    *S0tot_d = 0.0;
+    float facTensorMilne = prefacMilne * nevInv;
   
     //==========================================================================
     // loop over all cells (x, y, eta)
@@ -242,19 +231,21 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
             // calculate the source
             // ********************************************************
             
-            float pm0 = cheta * p0_d[m] - sheta * p3_d[m];
-            float pm3 = (-sheta * p0_d[m] + cheta * p3_d[m]) * tauInv;
+            float pm0 = cheta * p0_d[m] - sheta * p3_d[m]; // [1]
+            float pm3 = (-sheta * p0_d[m] + cheta * p3_d[m]) * tauInv; // [1/fm]
+            
+            float u0Inv = 1 / gi_d[m]; // 1/u0
 
-            Sb = Sb + kernel * bi_d[m]; // [1]
-            St = St + kernel * pm0;     // [GeV]
-            Sx = Sx + kernel * p1_d[m]; // [GeV]
-            Sy = Sy + kernel * p2_d[m]; // [GeV]
-            Sn = Sn + kernel * pm3;     // [GeV/fm]
+            Sb = Sb + kernel * u0Inv * bi_d[m]; // [1]
+            St = St + kernel * u0Inv * pm0;     // [1/fm]
+            Sx = Sx + kernel * u0Inv * p1_d[m]; // [1/fm]
+            Sy = Sy + kernel * u0Inv * p2_d[m]; // [1/fm]
+            Sn = Sn + kernel * u0Inv * pm3;     // [1/fm^2]
             
 #ifdef INITIAL_TENSOR
             float ptauInv = 1 / p0_d[m]; // p0_d[m] is pt, not p^tau
-            Ttt = Ttt + kernelT * ptauInv * pm0 * pm0; // kernelT is unitless
-            Ttx = Ttx + kernelT * ptauInv * pm0 * p1_d[m]; // [GeV]
+            Ttt = Ttt + kernelT * ptauInv * pm0 * pm0; // [1/fm]
+            Ttx = Ttx + kernelT * ptauInv * pm0 * p1_d[m];
             Tty = Tty + kernelT * ptauInv * pm0 * p2_d[m];
             Ttn = Ttn + kernelT * ptauInv * pm0 * pm3;
             Txx = Txx + kernelT * ptauInv * p1_d[m] * p1_d[m];
@@ -262,21 +253,21 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
             Txn = Txn + kernelT * ptauInv * p1_d[m] * pm3;
             Tyy = Tyy + kernelT * ptauInv * p2_d[m] * p2_d[m];
             Tyn = Tyn + kernelT * ptauInv * p2_d[m] * pm3;
-            Tnn = Tnn + kernelT * ptauInv * pm3 * pm3; // [GeV/fm^2] = [1/GeV] * [GeV/fm] * [GeV/fm]
+            Tnn = Tnn + kernelT * ptauInv * pm3 * pm3;
 #endif
         } //for (int m = 0; m < N; ++m)
 
         //==========================================================================
         // Write the source terms to arrays
       
-        Sb_d[cid] = facB * Sb; // [1/fm^4] = [1/fm^4] * [1]
-        St_d[cid] = facT * St; // [1/fm^5] = [1/(fm^5*GeV)] * [GeV]
-        Sx_d[cid] = facT * Sx; // [1/fm^5] = [1/(fm^5*GeV)] * [GeV]
-        Sy_d[cid] = facT * Sy; // [1/fm^5] = [1/(fm^5*GeV)] * [GeV]
-        Sn_d[cid] = facT * Sn; // [1/fm^6] = [1/(fm^5*GeV)] * [GeV/m]
+        Sb_d[cid] = facSource * Sb; // [1/fm^4] = [1/fm^4] * [1]
+        St_d[cid] = facSource * St; // [1/fm^5] = [1/fm^4] * [1/fm]
+        Sx_d[cid] = facSource * Sx; // [1/fm^5] = [1/fm^4] * [1/fm]
+        Sy_d[cid] = facSource * Sy; // [1/fm^5] = [1/fm^4] * [1/fm]
+        Sn_d[cid] = facSource * Sn; // [1/fm^6] = [1/fm^4] * [1/fm^2]
 #ifdef INITIAL_TENSOR
-        Ttt_d[cid] = facTensor * Ttt; // facTensor = [1/(GeV*fm^4)]
-        Ttx_d[cid] = facTensor * Ttx; // [1/fm^4] = [1/(GeV*fm^4)] * [GeV]
+        Ttt_d[cid] = facTensor * Ttt; // facTensor = [1/fm^3]
+        Ttx_d[cid] = facTensor * Ttx; // [1/fm^4] = [1/fm^3] * [1/fm]
         Tty_d[cid] = facTensor * Tty;
         Ttn_d[cid] = facTensor * Ttn;
         Txx_d[cid] = facTensor * Txx;
@@ -284,7 +275,7 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
         Txn_d[cid] = facTensor * Txn;
         Tyy_d[cid] = facTensor * Tyy;
         Tyn_d[cid] = facTensor * Tyn;
-        Tnn_d[cid] = facTensor * Tnn; // [1/fm^6] = [1/(GeV*fm^4)] * [GeV/fm^2]
+        Tnn_d[cid] = facTensor * Tnn;
 #endif
       
       // ****************************************************************************
@@ -334,8 +325,5 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
       Tyn_d[cid] = facTensorMilne * Tyn;
       Tnn_d[cid] = facTensorMilne * Tnn;
 #endif
-      
-      *T00tot_d = *T00tot_d + TttTot(r0, r3, Ttt_d[cid], Ttx_d[cid], Tty_d[cid], Ttn_d[cid], Txx_d[cid], Txy_d[cid], Txn_d[cid], Tyy_d[cid], Tyn_d[cid], Tnn_d[cid]);
-      *S0tot_d = *S0tot_d + StTot(r0, r3, St_d[cid], Sx_d[cid], Sy_d[cid], Sn_d[cid]);
    } //if (cid < Ntot)
 }

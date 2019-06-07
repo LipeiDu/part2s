@@ -63,6 +63,7 @@ int main()
   testfileTreatment(params.NEV, tauform, &Npart);
   printf("Total number of particles in test.16 is %d.\n", Npart);
 #endif
+  printf("***************************************\n");
 
   ////////////////////////////////////////////////////////////////////////////
   //                             All particles                              //
@@ -107,6 +108,7 @@ int main()
   int blocksY = (Ny+threadsY-1)/threadsY;
   int blocksZ = (Nn+threadsZ-1)/threadsZ;
     
+  printf("***************************************\n");
   printf("CUDA kernel parameters:\n");
   printf("dim3 grids = ( %d, %d, %d )\n", blocksX, blocksY, blocksZ);
   printf("dim3 threads = ( %d, %d, %d )\n", threadsX, threadsY, threadsZ);
@@ -119,11 +121,16 @@ int main()
   ////////////////////////////////////////////////////////////////////////////
     
   printf("***************************************\n");
+  printf("Grid size: (t, x, y, eta) = %lf X %lf X %lf X %lf\n", t0+Nt*dt, ((Nx + 1.0)/2.0) * dx, ((Ny + 1.0)/2.0) * dy, ((Nn + 1.0)/2.0) * dn);
+  printf("Grid spacing: (dt, dx, dy, dn) = %lf X %lf X %lf X %lf\n", dt, dx, dy, dn);
+  printf("Grid number: (Nt, Nx, Ny, Nn) = %d X %d X %d X %d\n", Nt, Nx, Ny, Nn);
+  printf("***************************************\n");
   printf("Calculating source terms...\n");
     
-  float Norm = 0.0;// test the normalization of the kernel, add up all time steps
+  // test the normalization of the kernel, add up all time steps
   float T00total = 0.0;
   float S0total = 0.0;
+  float Sbtotal = 0.0;
 
   //loop over time steps, calling kernel for each and writing to file
   for (int n = 1; n < Nt+1; ++n)
@@ -132,23 +139,14 @@ int main()
       
     int it = n-1;
     float tau = t0 + ((float)it) * dt;
-    float dV = tau * dt * dx * dy * dn;
-    
+
     printf("tau = %f\n", tau);
-      
-    // conservation test
-    *dT00tot = 0.0;
-    *dS0tot = 0.0;
     
     source_kernel<<< grids, threads >>>(Npart, it, p0_d, p1_d, p2_d, p3_d, r0_d, r1_d, r2_d, r3_d, mi_d, gi_d, bi_d,
                                         Sb_d, St_d, Sx_d, Sy_d, Sn_d, Ttt_d, Ttx_d, Tty_d, Ttn_d, Txx_d, Txy_d, Txn_d,
-                                        Tyy_d, Tyn_d, Tnn_d, dT00tot_d, dS0tot_d, params);
+                                        Tyy_d, Tyn_d, Tnn_d, params);
 
     copyDeviceToHostMemory(Ntot, err);
-      
-    T00total = T00total + (*dT00tot) * dV * hbarc * params.NEV;
-    S0total = S0total + (*dS0tot) * dV * hbarc * params.NEV;
-    printf("Integrated T00 is %lf, integrated S0 is %lf.\n", T00total, S0total);
       
     // Landau matching
 #ifdef INITIAL_TENSOR
@@ -165,14 +163,14 @@ int main()
     writeSourcesHDF5(n, Nx, Ny, Nn, Ntot, Sall, Sb, St, Sx, Sy, Sn);
 
     //FOR TESTING write ascii files
-    writeSourcesASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Norm);
+    writeSourcesASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Sbtotal, &S0total, params.NEV);
       
     // write tensor file
-    writeTensorsASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Norm);
+    writeTensorsASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn);
 
   } // for (int n ) time steps
     
-    printf("FINAL: Integrated T00 is %lf, integrated S0 is %lf.\n", T00total, S0total);
+  printf("FINAL: Integrated Sb is %lf, integrated S0 is %lf.\n", Sbtotal, S0total);
     
   ////////////////////////////////////////////////////////////////////////////
   //                             Clean up                                   //
