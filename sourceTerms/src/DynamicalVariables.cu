@@ -13,6 +13,7 @@ extern float *mi_d, *gi_d, *bi_d;
 //declare and allocate device source term arrays and tensors
 extern float *Sb_d, *St_d, *Sx_d, *Sy_d, *Sn_d;
 extern float *Ttt_d, *Ttx_d, *Tty_d, *Ttn_d, *Txx_d, *Txy_d, *Txn_d, *Tyy_d, *Tyn_d, *Tnn_d;
+extern float *Nt_d, *Nx_d, *Ny_d, *Nn_d;
 
 ////////////////////////////////////////////////////////////////////////////
 // host arrays
@@ -27,6 +28,7 @@ extern float *Sall;
 //host arrays for tensor
 extern float **stressTensor, **shearTensor, **flowVelocity;
 extern float *energyDensity, *pressure, *bulkPressure;
+extern float **baryonCurrent, **baryonDiffusion, *baryonDensity;
 
 ////////////////////////////////////////////////////////////////////////////
 // allocate
@@ -38,13 +40,14 @@ float *mi_d, *gi_d, *bi_d;
 
 float *Sb_d, *St_d, *Sx_d, *Sy_d, *Sn_d;
 float *Ttt_d, *Ttx_d, *Tty_d, *Ttn_d, *Txx_d, *Txy_d, *Txn_d, *Tyy_d, *Tyn_d, *Tnn_d;
+float *Nt_d, *Nx_d, *Ny_d, *Nn_d;
 
 float *Sb, *St, *Sx, *Sy, *Sn;
 float *Sall;
 
 float **stressTensor, **shearTensor, **flowVelocity;
 float *energyDensity, *pressure, *bulkPressure;
-
+float **baryonCurrent, **baryonDiffusion, *baryonDensity;
 
 void allocateDeviceMemory(int Npart, int Ntot, cudaError_t err){
     
@@ -86,6 +89,11 @@ void allocateDeviceMemory(int Npart, int Ntot, cudaError_t err){
     cudaMalloc( (void**) &Tyn_d, Ntot * sizeof(float) );
     cudaMalloc( (void**) &Tnn_d, Ntot * sizeof(float) );
     
+    cudaMalloc( (void**) &Nt_d, Ntot * sizeof(float) );
+    cudaMalloc( (void**) &Nx_d, Ntot * sizeof(float) );
+    cudaMalloc( (void**) &Ny_d, Ntot * sizeof(float) );
+    cudaMalloc( (void**) &Nn_d, Ntot * sizeof(float) );
+    
     //zero the device tensor arrays first
     cudaMemset( Ttt_d, 0.0, Ntot * sizeof(float));
     cudaMemset( Ttx_d, 0.0, Ntot * sizeof(float));
@@ -97,6 +105,11 @@ void allocateDeviceMemory(int Npart, int Ntot, cudaError_t err){
     cudaMemset( Tyy_d, 0.0, Ntot * sizeof(float));
     cudaMemset( Tyn_d, 0.0, Ntot * sizeof(float));
     cudaMemset( Tnn_d, 0.0, Ntot * sizeof(float));
+    
+    cudaMemset( Nt_d, 0.0, Ntot * sizeof(float));
+    cudaMemset( Nx_d, 0.0, Ntot * sizeof(float));
+    cudaMemset( Ny_d, 0.0, Ntot * sizeof(float));
+    cudaMemset( Nn_d, 0.0, Ntot * sizeof(float));
 #endif
     
     err = cudaGetLastError();
@@ -136,6 +149,17 @@ void allocateHostMemory(int Ntot){
     energyDensity = (float *)calloc( Ntot, sizeof(float) );
     pressure  = (float *)calloc( Ntot, sizeof(float) );
     bulkPressure = (float *)calloc( Ntot, sizeof(float) );
+    
+    //baryon
+    baryonCurrent = (float **)calloc( 4, sizeof(float*));
+    for(int i = 0; i < 4; i++)
+        baryonCurrent[i] = (float *)calloc( Ntot, sizeof(float) );
+    
+    baryonDiffusion = (float **)calloc( 4, sizeof(float*));
+    for(int i = 0; i < 4; i++)
+        baryonDiffusion[i] = (float *)calloc( Ntot, sizeof(float) );
+    
+    baryonDensity = (float *)calloc( Ntot, sizeof(float) );
 #endif
 }
 
@@ -188,6 +212,11 @@ void copyDeviceToHostMemory(int Ntot, cudaError_t err){
     cudaMemcpy( stressTensor[7], Tyy_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
     cudaMemcpy( stressTensor[8], Tyn_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
     cudaMemcpy( stressTensor[9], Tnn_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+    
+    cudaMemcpy( baryonCurrent[0], Nt_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+    cudaMemcpy( baryonCurrent[1], Nx_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+    cudaMemcpy( baryonCurrent[2], Ny_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
+    cudaMemcpy( baryonCurrent[3], Nn_d, Ntot * sizeof(float), cudaMemcpyDeviceToHost );
 #endif
     
 }
@@ -243,5 +272,20 @@ void freeMemory(){
     cudaFree(Tyy_d);
     cudaFree(Tyn_d);
     cudaFree(Tnn_d);
+    
+    for(int i = 0; i < 4; i++)
+        free(baryonCurrent[i]);
+    free(baryonCurrent);
+    
+    for(int i = 0; i < 4; i++)
+        free(baryonDiffusion[i]);
+    free(baryonDiffusion);
+    
+    free(baryonDensity);
+
+    cudaFree(Nt_d);
+    cudaFree(Nx_d);
+    cudaFree(Ny_d);
+    cudaFree(Nn_d);
 #endif
 }

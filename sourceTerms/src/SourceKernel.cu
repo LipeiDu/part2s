@@ -114,7 +114,7 @@ __host__ __device__ float KernelMilne(float r1, float r2, float r3, float rm1, f
 }
 
 
-__global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float *p2_d, float *p3_d, float *r0_d, float *r1_d, float *r2_d, float *r3_d, float *mi_d, float *gi_d, float *bi_d, float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, float *Ttt_d, float *Ttx_d, float *Tty_d, float *Ttn_d, float *Txx_d, float *Txy_d, float *Txn_d, float *Tyy_d, float *Tyn_d, float *Tnn_d, parameters params)
+__global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float *p2_d, float *p3_d, float *r0_d, float *r1_d, float *r2_d, float *r3_d, float *mi_d, float *gi_d, float *bi_d, float *Sb_d, float *St_d, float *Sx_d, float *Sy_d, float *Sn_d, float *Ttt_d, float *Ttx_d, float *Tty_d, float *Ttn_d, float *Txx_d, float *Txy_d, float *Txn_d, float *Tyy_d, float *Tyn_d, float *Tnn_d, float *Nt_d, float *Nx_d, float *Ny_d, float *Nn_d, parameters params)
 {
 
     long int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
@@ -204,6 +204,11 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
         float Tyy = 0.0;
         float Tyn = 0.0;
         float Tnn = 0.0;
+        
+        float Nt = 0.0;
+        float Nx = 0.0;
+        float Ny = 0.0;
+        float Nn = 0.0;
 #endif
 
         // ****************************************************************************
@@ -244,6 +249,7 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
             
 #ifdef INITIAL_TENSOR
             float ptauInv = 1 / p0_d[m]; // p0_d[m] is pt, not p^tau
+            
             Ttt = Ttt + kernelT * ptauInv * pm0 * pm0; // [1/fm]
             Ttx = Ttx + kernelT * ptauInv * pm0 * p1_d[m];
             Tty = Tty + kernelT * ptauInv * pm0 * p2_d[m];
@@ -254,6 +260,11 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
             Tyy = Tyy + kernelT * ptauInv * p2_d[m] * p2_d[m];
             Tyn = Tyn + kernelT * ptauInv * p2_d[m] * pm3;
             Tnn = Tnn + kernelT * ptauInv * pm3 * pm3;
+            
+            Nt = Nt + bi_d[m] * kernelT * ptauInv * pm0; // [1/fm]
+            Nx = Nx + bi_d[m] * kernelT * ptauInv * p1_d[m];
+            Ny = Ny + bi_d[m] * kernelT * ptauInv * p2_d[m];
+            Nn = Nn + bi_d[m] * kernelT * ptauInv * pm3;
 #endif
         } //for (int m = 0; m < N; ++m)
 
@@ -276,6 +287,11 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
         Tyy_d[cid] = facTensor * Tyy;
         Tyn_d[cid] = facTensor * Tyn;
         Tnn_d[cid] = facTensor * Tnn;
+        
+        Nt_d[cid] = facTensor * Nt;
+        Nx_d[cid] = facTensor * Nx;
+        Ny_d[cid] = facTensor * Ny;
+        Nn_d[cid] = facTensor * Nn;
 #endif
       
       // ****************************************************************************

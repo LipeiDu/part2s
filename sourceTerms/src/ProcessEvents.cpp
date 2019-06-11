@@ -266,16 +266,21 @@ void testfileTreatment(int nev, double tauform, int *Npart){
     // total energy and mass
     float energyTotal = 0.0;
     float massTotal = 0.0;
+    float baryonTotal = 0.0;
     
     //==========================================================================
     // read in the particle list from UrQMD; get the info. in Milne.
     
     ifstream infile1("test.f16");
     
-    FILE *outfile1;
-    char filname[255];
+    FILE *outfile1, *outfile2;
+    char filname[255], filname2[255];
+    
     sprintf(filname, "output/AllSets.dat");
     outfile1 = fopen(filname, "w");
+    
+    sprintf(filname2, "output/particleMomenta.dat");
+    outfile2 = fopen(filname2, "w");
     
     float r_i[4], p_i[4];
     
@@ -288,10 +293,18 @@ void testfileTreatment(int nev, double tauform, int *Npart){
     float m_i = 0;
     float b_i = 0;
     
-    while (infile1 >> r_i[0] >> r_i[1] >> r_i[2] >> r_i[3] >> p_i[0] >> p_i[1] >> p_i[2] >> p_i[3] >> m_i)
+    while (infile1 >> r_i[0] >> r_i[1] >> r_i[2] >> r_i[3] >> p_i[0] >> p_i[1] >> p_i[2] >> p_i[3] >> m_i >> b_i)
     {
         
-        b_i = 0.0;
+        if(fabs(b_i) < 56)
+            if(b_i > 0)
+                b_i = 1.0;
+            else
+                b_i = -1.0;
+        else
+            b_i = 0.0;
+        
+        baryonTotal = baryonTotal + b_i;
         
         // gamma factor of particle i
         
@@ -320,6 +333,14 @@ void testfileTreatment(int nev, double tauform, int *Npart){
         rm_i[2] = r_i[2]; // y
         rm_i[3] = 0.5 * log((r_i[0]+r_i[3])/(r_i[0]-r_i[3])); // eta_s
         
+        
+        // momentum in Milne
+        float rapidity = 0.5 * log((p_i[0]+p_i[3])/(p_i[0]-p_i[3])); // rapidity
+        float mT_i = sqrt(m_i*m_i+p_i[1]*p_i[1]+p_i[2]*p_i[2]); // mT
+        
+        float pm_tau = mT_i * cosh(rapidity-rm_i[3]); // p_tau
+        float pm_eta = mT_i * sinh(rapidity-rm_i[3]) / rm_i[0]; // p_eta
+        
         // write particles in output file
         
         if ( isnan(rm_i[0]) || isnan(rm_i[3]) )
@@ -331,13 +352,16 @@ void testfileTreatment(int nev, double tauform, int *Npart){
             fprintf(outfile1,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",
                     r_i[0],r_i[1],r_i[2],r_i[3],p_i[0],p_i[1],p_i[2],p_i[3],m_i,gamma_i,b_i);
             
+            fprintf(outfile2,"%.8f\t%.8f\n",p_i[0],pm_tau);
+            
             *Npart = *Npart + 1;
         }
     }
     
     fclose(outfile1);
+    fclose(outfile2);
     
-    printf("Total energy of all particle is %lf, total mass is %lf.\n",energyTotal,massTotal);
+    printf("Total energy of all particle is %lf, total mass is %lf, total baryon is %lf.\n",energyTotal,massTotal,baryonTotal);
 
 }
 

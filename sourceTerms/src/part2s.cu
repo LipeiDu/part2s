@@ -17,6 +17,7 @@
 #include "SourceKernel.cu"
 #include "DynamicalVariables.cu"
 #include "FileWriter.cpp"
+#include "Observables.cpp"
 
 using namespace std;
 
@@ -144,7 +145,7 @@ int main()
     
     source_kernel<<< grids, threads >>>(Npart, it, p0_d, p1_d, p2_d, p3_d, r0_d, r1_d, r2_d, r3_d, mi_d, gi_d, bi_d,
                                         Sb_d, St_d, Sx_d, Sy_d, Sn_d, Ttt_d, Ttx_d, Tty_d, Ttn_d, Txx_d, Txy_d, Txn_d,
-                                        Tyy_d, Tyn_d, Tnn_d, params);
+                                        Tyy_d, Tyn_d, Tnn_d, Nt_d, Nx_d, Ny_d, Nn_d, params);
 
     copyDeviceToHostMemory(Ntot, err);
       
@@ -153,6 +154,8 @@ int main()
     solveEigenSystem(stressTensor, energyDensity, flowVelocity, pressure, tau, Nx, Ny, Nn, Ntot, dx, dy);
     calculateBulkPressure(stressTensor, energyDensity, pressure, bulkPressure, Ntot, tau);
     calculateShearViscTensor(stressTensor, energyDensity, flowVelocity, pressure, bulkPressure, shearTensor, Ntot, tau);
+    calculateBaryonDensity(baryonDensity, baryonCurrent, flowVelocity, Ntot, tau);
+    calculateBaryonDiffusion(baryonDiffusion, baryonCurrent, baryonDensity, flowVelocity, Ntot);
 #endif
       
     ////////////////////////////////////////////////////////////////////////////
@@ -166,7 +169,9 @@ int main()
     writeSourcesASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Sbtotal, &S0total, params.NEV);
       
     // write tensor file
-    writeTensorsASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn);
+    writeTensorsASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn);
+      
+    calculateEccentricity(energyDensity, n, Nx, Ny, Nn, dx, dy, params.GAMMA_MAX, params.SIGMA);
 
   } // for (int n ) time steps
     
