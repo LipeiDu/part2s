@@ -115,7 +115,7 @@ void calculateEccentricity(float *energyDensity, int n, int Nx, int Ny, int Nn, 
     float eccentricity2 = sqrt(e2r * e2r + e2i * e2i) / e2w;
     float eccentricity3 = sqrt(e3r * e3r + e3i * e3i) / e3w;
     float eccentricity4 = sqrt(e4r * e4r + e4i * e4i) / e4w;
-    float eccentricity5 = sqrt(e5r * e5r + e5i * e5i) /e5w;
+    float eccentricity5 = sqrt(e5r * e5r + e5i * e5i) / e5w;
     
     //****************************************************
     // write the file

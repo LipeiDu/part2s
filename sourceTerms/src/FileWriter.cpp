@@ -89,15 +89,17 @@ void writeSourcesASCII(int n, int Nx, int Ny, int Nn, int Ntot, float tau, float
 
 void writeTensorsASCII(int n, int Nx, int Ny, int Nn, int Ntot, float tau, float dt, float dx, float dy, float dn){
 #ifdef INITIAL_TENSOR
-    FILE *tmunufile, *pifile, *baryonfile;
-    char finame[255], fjname[255], fkname[255];
+    FILE *tmunufile, *pifile, *baryonfile, *tensorfile;
+    char finame[255], fjname[255], fkname[255], flname[255];
     
     sprintf(finame, "%s%d.dat", "output/BaryonVariables", n);
     baryonfile = fopen(finame, "w");
-    sprintf(fjname, "%s%d.dat", "output/PrimaryVariables", n);
-    tmunufile = fopen(fjname, "w");
-    sprintf(fkname, "%s%d.dat", "output/DissipativeTerms", n);
-    pifile = fopen(fkname, "w");
+    //sprintf(fjname, "%s%d.dat", "output/PrimaryVariables", n);
+    //tmunufile = fopen(fjname, "w");
+    //sprintf(fkname, "%s%d.dat", "output/DissipativeTerms", n);
+    //pifile = fopen(fkname, "w");
+    sprintf(flname, "%s%d.dat", "output/Tmunu", n);
+    tensorfile = fopen(flname, "w");
     
     for (int i = 0; i < Nx; ++i)
     {
@@ -116,18 +118,21 @@ void writeTensorsASCII(int n, int Nx, int Ny, int Nn, int Ntot, float tau, float
                 fprintf(baryonfile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, baryonDensity[s], baryonCurrent[0][s], baryonCurrent[1][s], baryonDiffusion[0][s], baryonDiffusion[1][s]);
                 
                 // x,y,eta,e,ut,ux,uy,un
-                fprintf(tmunufile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, energyDensity[s], flowVelocity[0][s], flowVelocity[1][s], flowVelocity[2][s], flowVelocity[3][s]);
+                //fprintf(tmunufile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, energyDensity[s], flowVelocity[0][s], flowVelocity[1][s], flowVelocity[2][s], flowVelocity[3][s]);
                 
                 // x,y,eta,pitt,pitx,pixy,pinn,Pi
-                fprintf(pifile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, shearTensor[0][s], shearTensor[1][s], shearTensor[5][s], shearTensor[9][s], bulkPressure[s]);
+                //fprintf(pifile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, shearTensor[0][s], shearTensor[1][s], shearTensor[5][s], shearTensor[9][s], bulkPressure[s]);
+                
+                fprintf(tensorfile, "%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n", x, y, eta, energyDensity[s], pressure[s], flowVelocity[0][s], flowVelocity[1][s], flowVelocity[2][s], flowVelocity[3][s], shearTensor[0][s], shearTensor[1][s], shearTensor[2][s], shearTensor[3][s], shearTensor[4][s], shearTensor[5][s], shearTensor[6][s], shearTensor[7][s], shearTensor[8][s], shearTensor[9][s], bulkPressure[s]);
 
             }
         }
     }
     
     fclose(baryonfile);
-    fclose(tmunufile);
-    fclose(pifile);
+    //fclose(tmunufile);
+    //fclose(pifile);
+    fclose(tensorfile);
 #endif
 }
 
