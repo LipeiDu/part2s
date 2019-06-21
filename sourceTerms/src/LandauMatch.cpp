@@ -10,7 +10,7 @@
 #include <gsl/gsl_eigen.h>
 #include <gsl/gsl_sort_vector.h>
 
-#define REGULATE 0 // 1 to regulate flow in dilute regions
+#define REGULATE 1 // 1 to regulate flow in dilute regions
 #define GAMMAMAX 10.0
 #define THETA_FUNCTION(X) ((double)X < (double)0 ? (double)0 : (double)1)
 

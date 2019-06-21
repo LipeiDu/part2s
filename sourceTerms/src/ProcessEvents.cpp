@@ -30,11 +30,11 @@ void eventsTreatment(int nev, double tauform, int *Nbtot, int *Npart){
     for (int iev=1; iev<nev+1; ++iev)
     {
         
-        printf("**********Processing Set%d.dat**********\n", iev);
+        printf("**********Processing event%d.dat**********\n", iev);
         
         FILE *eventfile;
         char eventname[255];
-        sprintf(eventname, "%s%d.dat", "Set",iev);
+        sprintf(eventname, "%s%d.dat", "event",iev);
         eventfile = fopen(eventname, "r");
         
         ////////////////////////////////////////////////////////////////////////////
@@ -71,7 +71,7 @@ void eventsTreatment(int nev, double tauform, int *Nbtot, int *Npart){
         float Etot = 0.0;
         
         if(eventfile==NULL){
-            printf("Set%d.dat could not be opened...\n", iev);
+            printf("event%d.dat could not be opened...\n", iev);
         }
         else
         {
@@ -133,7 +133,7 @@ void eventsTreatment(int nev, double tauform, int *Nbtot, int *Npart){
             fclose(eventfile);
             fclose(milnefile);
             
-            printf("Total number of particles in Set%d.dat is %d.\n", iev, NpartEv);
+            printf("Total number of particles in event%d.dat is %d.\n", iev, NpartEv);
         }
         
         *Npart = *Npart + NpartEv;
