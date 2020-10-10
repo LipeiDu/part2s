@@ -23,12 +23,31 @@ void writeSourcesHDF5(int n, int Nx, int Ny, int Nn, int Ntot, float *Sall, floa
     //compress all data into the 1d array to pass to hdf5 writer
     for (int is = 0; is < Ntot; is++)
     {
-        Sall[is] = Sb[is];
-        Sall[Ntot + is] = St[is];
-        Sall[2 * Ntot + is] = Sx[is];
-        Sall[3 * Ntot + is] = Sy[is];
-        Sall[4 * Ntot + is] = Sn[is];
+        Sall[5 * is]     = St[is];
+        Sall[5 * is + 1] = Sx[is];
+        Sall[5 * is + 2] = Sy[is];
+        Sall[5 * is + 3] = Sn[is];
+        Sall[5 * is + 4] = Sb[is];
     }
+    
+    /*for (int i = 0; i < Nx; ++i)
+    {
+        for (int j = 0; j < Ny; ++j)
+        {
+            for (int k = 0; k < Nn; ++k)
+            {
+                
+                int is = i + j * (Nx) + k * (Nx * Ny);
+                
+                Sall[5 * is] = St[is];
+                Sall[5 * is + 1] = Sx[is];
+                Sall[5 * is + 2] = Sy[is];
+                Sall[5 * is + 3] = Sn[is];
+                Sall[5 * is + 4] = Sb[is];
+                
+            } // for (int k )
+        } //for (int j)
+    } //for (int i )*/
     
     //printf("Writing source terms to file...\n\n");
     char source_fname[255];
@@ -36,13 +55,20 @@ void writeSourcesHDF5(int n, int Nx, int Ny, int Nn, int Ntot, float *Sall, floa
     H5::H5File file(source_fname, H5F_ACC_TRUNC);
     
     // dataset dimensions
-    hsize_t dimsf[4];
-    dimsf[0] = Nx;
-    dimsf[1] = Ny;
-    dimsf[2] = Nn;
-    dimsf[3] = 5;
+    //hsize_t dimsf[4];
+    //dimsf[0] = Nx;
+    //dimsf[1] = Ny;
+    //dimsf[2] = Nn;
+    //dimsf[3] = 5;
     
-    H5::DataSpace dataspace(4, dimsf);
+    //H5::DataSpace dataspace(4, dimsf);
+    
+    hsize_t dimsf[2];
+    dimsf[0] = Nx * Ny * Nn;
+    dimsf[1] = 5;
+    
+    H5::DataSpace dataspace(2, dimsf);
+    
     H5::DataType datatype(H5::PredType::NATIVE_FLOAT);
     H5::DataSet dataset = file.createDataSet("data", datatype, dataspace);
     dataset.write(Sall, H5::PredType::NATIVE_FLOAT);

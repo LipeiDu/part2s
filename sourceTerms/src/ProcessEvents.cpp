@@ -16,7 +16,7 @@ using namespace std;
 
 void eventsTreatment(int nev, double tauform, int *Nbtot, int *Npart){
     
-    printf("Read UrQMD output files Set.dat with baryon number...\n");
+    printf("Read UrQMD output files event#.dat with baryon number...\n");
     
     float energyTotal = 0.0;
     float massTotal = 0.0;
@@ -34,7 +34,7 @@ void eventsTreatment(int nev, double tauform, int *Nbtot, int *Npart){
         
         FILE *eventfile;
         char eventname[255];
-        sprintf(eventname, "%s%d.dat", "event",iev);
+        sprintf(eventname, "input/%s%d.dat", "event",iev);
         eventfile = fopen(eventname, "r");
         
         ////////////////////////////////////////////////////////////////////////////
@@ -271,7 +271,7 @@ void testfileTreatment(int nev, double tauform, int *Npart){
     //==========================================================================
     // read in the particle list from UrQMD; get the info. in Milne.
     
-    ifstream infile1("test.f16");
+    ifstream infile1("input/test.f16");
     
     FILE *outfile1, *outfile2;
     char filname[255], filname2[255];

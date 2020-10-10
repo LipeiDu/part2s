@@ -169,9 +169,9 @@ int main()
     writeSourcesASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Sbtotal, &S0total, params.NEV);
       
     // write tensor file
-    writeTensorsASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn);
+    //writeTensorsASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn);
       
-    calculateEccentricity(energyDensity, n, Nx, Ny, Nn, dx, dy, params.GAMMA_MAX, params.SIGMA);
+    //calculateEccentricity(energyDensity, n, Nx, Ny, Nn, dx, dy, params.GAMMA_MAX, params.SIGMA);
 
   } // for (int n ) time steps
     

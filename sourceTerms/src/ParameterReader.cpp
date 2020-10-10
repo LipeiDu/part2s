@@ -6,7 +6,7 @@
 #define hbarc 0.1973
 #define PI 3.14159
 
-#define INITIAL_TENSOR
+//#define INITIAL_TENSOR
 
 struct parameters
 {
