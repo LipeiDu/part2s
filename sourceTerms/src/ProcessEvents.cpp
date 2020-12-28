@@ -251,6 +251,8 @@ void eventsTreatment(int nev, double tauform, int *Nbtot, int *Npart){
     
     fclose(allsetfile);
     
+    printf("***********Info of all %d events**********\n",nev);
+    
     printf("Total energy of all particle is %lf, total mass is %lf.\n",energyTotal,massTotal);
     
 }

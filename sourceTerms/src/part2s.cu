@@ -164,10 +164,19 @@ int main()
 
     // write HDF5 file
     writeSourcesHDF5(n, Nx, Ny, Nn, Ntot, Sall, Sb, St, Sx, Sy, Sn);
+      
+    float Sbn = 0.0;
+    float Stn = 0.0;
 
     //FOR TESTING write ascii files
-    writeSourcesASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Sbtotal, &S0total, params.NEV);
+    writeSourcesASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Sbn, &Stn, params.NEV);
+    
+    //printf("Before: Sbtotal is = %lf\n", Sbtotal);
       
+    Sbtotal += Sbn;
+    S0total += Stn;
+      
+    printf("step Sbtotal is = %lf, S0total is = %lf\n", Sbtotal, S0total);
     // write tensor file
     //writeTensorsASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn);
       
@@ -175,7 +184,7 @@ int main()
 
   } // for (int n ) time steps
     
-  printf("FINAL: Integrated Sb is %lf, integrated S0 is %lf.\n", Sbtotal, S0total);
+  printf("FINAL: Integrated Sb is %lf, integrated S0 is %lf.\n", Sbtotal*params.NEV, S0total*params.NEV);
     
   ////////////////////////////////////////////////////////////////////////////
   //                             Clean up                                   //
