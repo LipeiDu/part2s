@@ -15,8 +15,9 @@
 #define THETA_FUNCTION(X) ((double)X < (double)0 ? (double)0 : (double)1)
 
 double equilibriumPressure(double e);
+double effectiveTemperature(double e);
 
-void solveEigenSystem(float **stressTensor, float *energyDensity, float **flowVelocity, float *pressure, float TAU, int DIM_X, int DIM_Y, int DIM_ETA, int DIM, float DX, float DY)
+void solveEigenSystem(float **stressTensor, float *energyDensity, float **flowVelocity, float *pressure, float *temperature, float TAU, int DIM_X, int DIM_Y, int DIM_ETA, int DIM, float DX, float DY)
 {
     //********************************************************
     // Solve eigenvalue problem in the Landau Frame
@@ -161,11 +162,12 @@ void solveEigenSystem(float **stressTensor, float *energyDensity, float **flowVe
     }
     
     //********************************************************
-    // Initialize pressure
+    // Initialize pressure and temperature
     //********************************************************
     
     for (int is = 0; is < DIM; is++){
-                pressure[is] = equilibriumPressure(energyDensity[is]);
+        pressure[is] = equilibriumPressure(energyDensity[is]);
+        temperature[is] = effectiveTemperature(energyDensity[is]);
     }
 }
 
@@ -222,9 +224,10 @@ void calculateBaryonDiffusion(float **baryonDiffusion, float **baryonCurrent, fl
     }
 }
 
-// Equation of State
+// Equation of State from the Wuppertal-Budapest collaboration
+
 double equilibriumPressure(double e) {
-    // Equation of state from the Wuppertal-Budapest collaboration
+
     double e1 = (double)e;
     double e2 = e*e;
     double e3 = e2*e;
@@ -268,6 +271,35 @@ double equilibriumPressure(double e) {
     double b12 = 3.2581066229887368e-18;
     double b = (double)fma(b12,e12,fma(b11,e11,fma(b10,e10,fma(b9,e9,fma(b8,e8,fma(b7,e7,fma(b6,e6,fma(b5,e5,fma(b4,e4,fma(b3,e3,fma(b2,e2,fma(b1,e1,b0))))))))))));
     return a/b;
+}
+
+double effectiveTemperature(double e) {
+
+    double e1 = (double) e;
+    double e2 = e * e1;
+    double e3 = e2 * e1;
+    double e4 = e3 * e1;
+    double e5 = e4 * e1;
+    double e6 = e5 * e1;
+    double e7 = e6 * e1;
+    double e8 = e7 * e1;
+    double e9 = e8 * e1;
+    double e10 = e9 * e1;
+    double e11 = e10 * e1;
+    
+    return (1.510073201405604e-29 + 8.014062800678687e-18 * e
+            + 2.4954778310451065e-10 * e2 + 0.000063810382643387 * e3
+            + 0.4873490574161924 * e4 + 207.48582344326206 * e5
+            + 6686.07424325115 * e6 + 14109.766109389702 * e7
+            + 1471.6180520527757 * e8 + 14.055788949565482 * e9
+            + 0.015421252394182246 * e10 + 1.5780479034557783e-6 * e11)
+    / (7.558667139355393e-28 + 1.3686372302041508e-16 * e
+       + 2.998130743142826e-9 * e2 + 0.0005036835870305458 * e3
+       + 2.316902328874072 * e4 + 578.0778724946719 * e5
+       + 11179.193315394154 * e6 + 17965.67607192861 * e7
+       + 1051.0730543534657 * e8 + 5.916312075925817 * e9
+       + 0.003778342768228011 * e10 + 1.8472801679382593e-7 * e11);
+
 }
 
 

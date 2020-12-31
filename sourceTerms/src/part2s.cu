@@ -56,14 +56,14 @@ int main()
     
   int Npart = 0; // total number of particles in all event files to be averaged over
   
-#ifndef INITIAL_TENSOR
+//#ifndef INITIAL_TENSOR
   int Nbtot = 0;
   eventsTreatment(params.NEV, tauform, &Nbtot, &Npart);
   printf("Total number of particles in All Sets is %d, net baryon number is %d.\n", Npart, Nbtot);
-#else
-  testfileTreatment(params.NEV, tauform, &Npart);
-  printf("Total number of particles in test.16 is %d.\n", Npart);
-#endif
+//#else
+//  testfileTreatment(params.NEV, tauform, &Npart);
+//  printf("Total number of particles in test.16 is %d.\n", Npart);
+//#endif
   printf("***************************************\n");
 
   ////////////////////////////////////////////////////////////////////////////
@@ -151,7 +151,7 @@ int main()
       
     // Landau matching
 #ifdef INITIAL_TENSOR
-    solveEigenSystem(stressTensor, energyDensity, flowVelocity, pressure, tau, Nx, Ny, Nn, Ntot, dx, dy);
+    solveEigenSystem(stressTensor, energyDensity, flowVelocity, pressure, temperature, tau, Nx, Ny, Nn, Ntot, dx, dy);
     calculateBulkPressure(stressTensor, energyDensity, pressure, bulkPressure, Ntot, tau);
     calculateShearViscTensor(stressTensor, energyDensity, flowVelocity, pressure, bulkPressure, shearTensor, Ntot, tau);
     calculateBaryonDensity(baryonDensity, baryonCurrent, flowVelocity, Ntot, tau);
@@ -163,20 +163,24 @@ int main()
     ////////////////////////////////////////////////////////////////////////////
 
     // write HDF5 file
-    writeSourcesHDF5(n, Nx, Ny, Nn, Ntot, Sall, Sb, St, Sx, Sy, Sn);
+    writeSourcesHDF5(n, Nx, Ny, Nn, Ntot, Sall, Sb, St, Sx, Sy, Sn);//Sources
+    writeStressHDF5(n, Nx, Ny, Nn, Ntot, stressAll, stressTensor);//Tmunu
+    writeShearHDF5(n, Nx, Ny, Nn, Ntot, shearAll, shearTensor);//shear stress
+    writePrimaryHDF5(n, Nx, Ny, Nn, Ntot, primaryAll, energyDensity, pressure, temperature, bulkPressure, flowVelocity);//energy, pressure, temperature, bulk, flow velocity
+    writeBaryonHDF5(n, Nx, Ny, Nn, Ntot, baryonAll, baryonDensity, baryonCurrent, baryonDiffusion);//baryon density, net current, diffusion
       
-    float Sbn = 0.0;
-    float Stn = 0.0;
+    //float Sbn = 0.0;
+    //float Stn = 0.0;
 
     //FOR TESTING write ascii files
-    writeSourcesASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Sbn, &Stn, params.NEV);
+    //writeSourcesASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn, Sb, St, Sx, Sy, Sn, &Sbn, &Stn, params.NEV);
     
     //printf("Before: Sbtotal is = %lf\n", Sbtotal);
       
-    Sbtotal += Sbn;
-    S0total += Stn;
+    //Sbtotal += Sbn;
+    //S0total += Stn;
       
-    printf("step Sbtotal is = %lf, S0total is = %lf\n", Sbtotal, S0total);
+    //printf("step Sbtotal is = %lf, S0total is = %lf\n", Sbtotal, S0total);
     // write tensor file
     //writeTensorsASCII(n, Nx, Ny, Nn, Ntot, tau, dt, dx, dy, dn);
       
@@ -184,7 +188,7 @@ int main()
 
   } // for (int n ) time steps
     
-  printf("FINAL: Integrated Sb is %lf, integrated S0 is %lf.\n", Sbtotal*params.NEV, S0total*params.NEV);
+  //printf("FINAL: Integrated Sb is %lf, integrated S0 is %lf.\n", Sbtotal*params.NEV, S0total*params.NEV);
     
   ////////////////////////////////////////////////////////////////////////////
   //                             Clean up                                   //

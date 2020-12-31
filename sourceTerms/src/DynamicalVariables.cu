@@ -27,11 +27,17 @@ extern float *Sall;
 
 //host arrays for tensor
 extern float **stressTensor, **shearTensor, **flowVelocity;
-extern float *energyDensity, *pressure, *bulkPressure;
+extern float *energyDensity, *pressure, *temperature, *bulkPressure;
 extern float **baryonCurrent, **baryonDiffusion, *baryonDensity;
 
+//arrays for hdf5 writer
+extern float *stressAll;
+extern float *shearAll;
+extern float *primaryAll;
+extern float *baryonAll;
+
 ////////////////////////////////////////////////////////////////////////////
-// allocate
+// allocation
 ////////////////////////////////////////////////////////////////////////////
 
 float *p0_d, *p1_d, *p2_d, *p3_d;
@@ -46,8 +52,15 @@ float *Sb, *St, *Sx, *Sy, *Sn;
 float *Sall;
 
 float **stressTensor, **shearTensor, **flowVelocity;
-float *energyDensity, *pressure, *bulkPressure;
+float *energyDensity, *pressure, *temperature, *bulkPressure;
 float **baryonCurrent, **baryonDiffusion, *baryonDensity;
+
+float *stressAll;
+float *shearAll;
+float *primaryAll;
+float *baryonAll;
+
+////////////////////////////////////////////////////////////////////////////
 
 void allocateDeviceMemory(int Npart, int Ntot, cudaError_t err){
     
@@ -148,9 +161,10 @@ void allocateHostMemory(int Ntot){
     
     energyDensity = (float *)calloc( Ntot, sizeof(float) );
     pressure  = (float *)calloc( Ntot, sizeof(float) );
+    temperature = (float *)calloc( Ntot, sizeof(float) );
     bulkPressure = (float *)calloc( Ntot, sizeof(float) );
     
-    //baryon
+    //baryon sector
     baryonCurrent = (float **)calloc( 4, sizeof(float*));
     for(int i = 0; i < 4; i++)
         baryonCurrent[i] = (float *)calloc( Ntot, sizeof(float) );
@@ -160,6 +174,12 @@ void allocateHostMemory(int Ntot){
         baryonDiffusion[i] = (float *)calloc( Ntot, sizeof(float) );
     
     baryonDensity = (float *)calloc( Ntot, sizeof(float) );
+    
+    //for hdf5
+    stressAll = (float *)calloc( 10*Ntot, sizeof(float) ); //Tmunu
+    shearAll = (float *)calloc( 10*Ntot, sizeof(float) ); //shear stress
+    primaryAll = (float *)calloc( 8*Ntot, sizeof(float) ); //energy, pressure, temperature, bulk, flow velocity
+    baryonAll = (float *)calloc( 9*Ntot, sizeof(float) ); //baryon density, net current, diffusion
 #endif
 }
 
@@ -227,6 +247,7 @@ void freeMemory(){
     free(Sx);
     free(Sy);
     free(Sn);
+    free(Sall);
     
     cudaFree(p0_d);
     cudaFree(p1_d);
@@ -260,6 +281,7 @@ void freeMemory(){
     
     free(energyDensity);
     free(pressure);
+    free(temperature);
     free(bulkPressure);
     
     cudaFree(Ttt_d);
@@ -273,6 +295,7 @@ void freeMemory(){
     cudaFree(Tyn_d);
     cudaFree(Tnn_d);
     
+    //baryon section
     for(int i = 0; i < 4; i++)
         free(baryonCurrent[i]);
     free(baryonCurrent);
@@ -287,5 +310,11 @@ void freeMemory(){
     cudaFree(Nx_d);
     cudaFree(Ny_d);
     cudaFree(Nn_d);
+    
+    // for hdf5
+    free(stressAll);
+    free(shearAll);
+    free(primaryAll);
+    free(baryonAll);
 #endif
 }
