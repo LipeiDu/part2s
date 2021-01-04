@@ -7,7 +7,7 @@
 #define PI 3.14159
 
 #define INITIAL_TENSOR
-#define TEST_KERNEL
+//#define TEST_KERNEL
 //#define MILNE_KERNEL
 
 struct parameters

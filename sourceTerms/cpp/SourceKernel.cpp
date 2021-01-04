@@ -2,6 +2,10 @@
 #include <math.h>
 #include "ParameterReader.cpp"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 float KernelCartesian(float r0, float r1, float r2, float r3, float ri0, float ri1, float ri2, float ri3, float pi0, float pi1, float pi2, float pi3, float mi, float gi, float gmax, float vmax, float sigma2, float delta_tau, float d_tauInv, float SigInv, float *kernelT){
     
     // ********************************************************
@@ -51,8 +55,8 @@ float KernelCartesian(float r0, float r1, float r2, float r3, float ri0, float r
     float udr = u1 * d1 + u2 * d2 + u3 * d3;
     float distSpa2 = dr2 + udr * udr;
     
-//     if (distSpa2 <= 9 * sigma2 && distTem <= 3 * delta_tau) // if the particle's contribution is important
-//     {
+     if (distSpa2 <= 9 * sigma2 && distTem <= 3 * delta_tau) // if the particle's contribution is important
+     {
         float expSpace = - distSpa2 * SigInv;
         float expS = exp(expSpace);
         
@@ -77,7 +81,7 @@ float KernelCartesian(float r0, float r1, float r2, float r3, float ri0, float r
             *kernelT = 0.0;
         }
 
-//      } // contribution check
+      } // contribution check
     
      return kernel;
 }
@@ -161,6 +165,11 @@ void source_kernel(int Npart, float tau, float *p0_d, float *p1_d, float *p2_d, 
   
     //==========================================================================
     // loop over all cells (x, y, eta)
+
+#pragma omp parallel for collapse(3)
+#ifdef TILE
+#pragma unroll_and_jam
+#endif
     
     for (int k = 0; k < Nn; ++k)
     {

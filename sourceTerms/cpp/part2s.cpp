@@ -11,6 +11,7 @@
 #include <math.h>
 #include <string>
 #include <iomanip>
+#include <ctime>
 #include "ParameterReader.cpp"
 #include "ProcessEvents.cpp"
 #include "LandauMatch.cpp"
@@ -19,12 +20,29 @@
 #include "FileWriter.cpp"
 #include "Observables.cpp"
 
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 using namespace std;
 
 int main()
 {
   printf("\n");
   printf("++++++++++++++Program started+++++++++++++++\n");
+    
+  std::clock_t t1,t2;
+  t1 = std::clock();
+    
+#ifdef _OPENMP
+  int tid = omp_get_max_threads();
+  printf("Get %d threads...\n", tid);
+    
+  //clock
+  double sec = 0.0;
+  sec = omp_get_wtime();
+#endif
 
   ////////////////////////////////////////////////////////////////////////////
   //                            Initialize parameters                       //
@@ -161,6 +179,15 @@ int main()
     
   printf("Freeing memory\n");
   freeMemory();
+    
+#ifdef _OPENMP
+  sec = omp_get_wtime() - sec;
+
+  printf("OpenMP part2s took %f seconds\n", sec);
+#endif
+  t2 = std::clock();
+  double delta_time = (t2 - t1) / (double)(CLOCKS_PER_SEC);
+  printf("part2s took %f seconds\n", delta_time);
 
   printf("Done. Goodbye! \n");
 }

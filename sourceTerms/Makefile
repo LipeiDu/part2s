@@ -6,8 +6,8 @@ CC = g++ #
 #compiler flags
 # -g adds debug info
 # -Wall turns on most warnings
-CFLAGS = -lhdf5 -lhdf5_cpp -lgsl -lgslcblas 
-#LIBS= 
+CFLAGS = -fopenmp -lhdf5 -lhdf5_cpp -lgsl -lgslcblas 
+LIBS= -lgomp -lhdf5 -lhdf5_cpp -lgsl -lgslcblas
 
 #source code directory
 SRC = cpp
