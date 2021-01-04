@@ -1,0 +1,15 @@
+nev 1
+sigma 0.3
+sigman 0.3
+gamma_max 5.0
+delta_tau 0.2
+tauform 0.2
+t0 0.1
+Nx 51
+Ny 41
+Nn 11
+Nt 5
+dt 0.1
+dx 0.2
+dy 0.2
+dn 0.2

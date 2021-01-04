@@ -69,7 +69,7 @@ __host__ __device__ float KernelCartesian(float r0, float r1, float r2, float r3
         }
         
         // kernel for tensors before taking derivatives; fluid tensor, not particle tensor
-        float erfExp = 0.5 * ( erf(distTem * d_tauInv / 1.41421) + 1 );
+        float erfExp = 0.5 * ( erf(-distTem * d_tauInv / 1.41421) + 1 );
         
         *kernelT = erfExp * expS;
         
@@ -250,21 +250,21 @@ __global__ void source_kernel(int Npart, int it, float *p0_d, float *p1_d, float
 #ifdef INITIAL_TENSOR
             float ptauInv = 1 / p0_d[m]; // p0_d[m] is pt, not p^tau
             
-            Ttt = Ttt + kernelT * ptauInv * pm0 * pm0; // [1/fm]
-            Ttx = Ttx + kernelT * ptauInv * pm0 * p1_d[m];
-            Tty = Tty + kernelT * ptauInv * pm0 * p2_d[m];
-            Ttn = Ttn + kernelT * ptauInv * pm0 * pm3;
-            Txx = Txx + kernelT * ptauInv * p1_d[m] * p1_d[m];
-            Txy = Txy + kernelT * ptauInv * p1_d[m] * p2_d[m];
-            Txn = Txn + kernelT * ptauInv * p1_d[m] * pm3;
-            Tyy = Tyy + kernelT * ptauInv * p2_d[m] * p2_d[m];
-            Tyn = Tyn + kernelT * ptauInv * p2_d[m] * pm3;
-            Tnn = Tnn + kernelT * ptauInv * pm3 * pm3;
+            Ttt = Ttt + gi_d[m] * kernelT * ptauInv * pm0 * pm0; // [1/fm]
+            Ttx = Ttx + gi_d[m] * kernelT * ptauInv * pm0 * p1_d[m];
+            Tty = Tty + gi_d[m] * kernelT * ptauInv * pm0 * p2_d[m];
+            Ttn = Ttn + gi_d[m] * kernelT * ptauInv * pm0 * pm3;
+            Txx = Txx + gi_d[m] * kernelT * ptauInv * p1_d[m] * p1_d[m];
+            Txy = Txy + gi_d[m] * kernelT * ptauInv * p1_d[m] * p2_d[m];
+            Txn = Txn + gi_d[m] * kernelT * ptauInv * p1_d[m] * pm3;
+            Tyy = Tyy + gi_d[m] * kernelT * ptauInv * p2_d[m] * p2_d[m];
+            Tyn = Tyn + gi_d[m] * kernelT * ptauInv * p2_d[m] * pm3;
+            Tnn = Tnn + gi_d[m] * kernelT * ptauInv * pm3 * pm3;
             
-            Nt = Nt + bi_d[m] * kernelT * ptauInv * pm0; // [1/fm]
-            Nx = Nx + bi_d[m] * kernelT * ptauInv * p1_d[m];
-            Ny = Ny + bi_d[m] * kernelT * ptauInv * p2_d[m];
-            Nn = Nn + bi_d[m] * kernelT * ptauInv * pm3;
+            Nt = Nt + bi_d[m] * gi_d[m] * kernelT * ptauInv * pm0; // [1/fm]
+            Nx = Nx + bi_d[m] * gi_d[m] * kernelT * ptauInv * p1_d[m];
+            Ny = Ny + bi_d[m] * gi_d[m] * kernelT * ptauInv * p2_d[m];
+            Nn = Nn + bi_d[m] * gi_d[m] * kernelT * ptauInv * pm3;
 #endif
         } //for (int m = 0; m < N; ++m)
 

@@ -35,7 +35,12 @@ void eventsTreatment(int nev, double tauform, int *Nbtot, int *Npart){
         
         FILE *eventfile;
         char eventname[255];
+        
+#ifndef TEST_KERNEL
         sprintf(eventname, "input/%s%d.dat", "event",iev);
+#else
+        sprintf(eventname, "input/event_test_kernel.dat");
+#endif
         eventfile = fopen(eventname, "r");
         
         ////////////////////////////////////////////////////////////////////////////
@@ -235,16 +240,18 @@ void eventsTreatment(int nev, double tauform, int *Nbtot, int *Npart){
                 
                 // recenter and rotate
                 
-                r1 = r1 - CMx;
-                r2 = r2 - CMy;
-                float xp =  r1 * cos(psi) + r2 * sin(psi);
-                float yp = -r1 * sin(psi) + r2 * cos(psi);
+//                 r1 = r1 - CMx;
+//                 r2 = r2 - CMy;
+//                 float xp =  r1 * cos(psi) + r2 * sin(psi);
+//                 float yp = -r1 * sin(psi) + r2 * cos(psi);
                 
-                float p1p =  p1 * cos(psi) + p2 * sin(psi);
-                float p2p = -p1 * sin(psi) + p2 * cos(psi);
+//                 float p1p =  p1 * cos(psi) + p2 * sin(psi);
+//                 float p2p = -p1 * sin(psi) + p2 * cos(psi);
                 
-               fprintf(allsetfile,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",
-                r0,xp,yp,r3,p0,p1p,p2p,p3,mi,gi,bi);
+//                fprintf(allsetfile,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",
+//                 r0,xp,yp,r3,p0,p1p,p2p,p3,mi,gi,bi);
+                fprintf(allsetfile,"%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n",
+                            r0,r1,r2,r3,p0,p1,p2,p3,mi,gi,bi);
 
             }
         }

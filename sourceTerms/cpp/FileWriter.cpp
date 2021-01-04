@@ -24,7 +24,7 @@ float StTot(float tau, float eta, float St, float Sx, float Sy, float Sn){
 ////////////////////////////////////////////////////////////////////////////
 
 void writeSourcesHDF5(int n, int Nx, int Ny, int Nn, int Ntot, float *Sall, float *Sb, float *St, float *Sx, float *Sy, float *Sn){
-        
+    
     int N2 = 5;
     
     //compress all data into the 1d array to pass to hdf5 writer

@@ -1,7 +1,7 @@
 #compiler
-CC = g++ #
+#CC = g++ #
 #CC = icpc #intel compiler tends to be faster
-#CC = nvcc # to compile cuda 
+CC = nvcc # to compile cuda 
 
 #compiler flags
 # -g adds debug info
@@ -10,13 +10,13 @@ CFLAGS = -lhdf5 -lhdf5_cpp -lgsl -lgslcblas
 #LIBS= 
 
 #source code directory
-SRC = cpp
+SRC = src
 
 #build target
 TARGET = part2s
 
 all: $(TARGET)
 
-$(TARGET): $(SRC)/$(TARGET).cpp
-	$(CC) $(CFLAGS) $(LIBS) -o $(TARGET) $(SRC)/$(TARGET).cpp
+$(TARGET): $(SRC)/$(TARGET).cu
+	$(CC) $(CFLAGS) $(LIBS) -o $(TARGET) $(SRC)/$(TARGET).cu
 clean:
